@@ -1,40 +1,48 @@
 version: "3.8"
 
 services:
+
   db:
     image: pgvector/pgvector:pg16
     container_name: ai_sales_bot_db
     restart: always
+
     environment:
       POSTGRES_DB: ai_sales_bot
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
-    ports:
-      - "5432:5432"
+
+    # Do not expose the database publicly
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ai_sales_bot"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
+
     container_name: ai_sales_bot_api
     restart: always
+
     depends_on:
       db:
         condition: service_healthy
+
     ports:
-      - "8000:8000"
+      - "127.0.0.1:18000:8000"
+
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@db:5432/ai_sales_bot
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super_secret_jwt_key_change_in_prod_123}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
 
 volumes:
   postgres_data:

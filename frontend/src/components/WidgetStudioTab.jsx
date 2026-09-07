@@ -74,7 +74,7 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
   const siteKey = widgetConfig?.site_key || 'sk_live_demo_key';
 
   const embedCode = `<script 
-  src="http://localhost:8000/static/widget.js" 
+  src="/api/static/widget.js"
   data-site-key="${siteKey}" 
   async>
 </script>`;
