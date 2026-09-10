@@ -25,6 +25,11 @@ router = APIRouter(
     "",
     response_model=CompanyResponse,
 )
+@router.post(
+    "/",
+    response_model=CompanyResponse,
+    include_in_schema=False,
+)
 async def create_company_api(
     company: CompanyCreate,
     db: AsyncSession = Depends(get_db),
