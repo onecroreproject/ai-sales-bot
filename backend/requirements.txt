@@ -18,3 +18,4 @@ python-dotenv
 email-validator
 slowapi
 asyncpg
+sshtunnel

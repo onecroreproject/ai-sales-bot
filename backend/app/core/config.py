@@ -8,6 +8,13 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
+    # Production VPS SSH Tunnel configuration
+    USE_SSH_TUNNEL: bool = True
+    VPS_HOST: str = "147.93.31.98"
+    VPS_PORT: int = 22
+    VPS_USER: str = "root"
+    VPS_PASSWORD: str = ""
+
     OPENAI_API_KEY: str
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_TEMPERATURE: float = 0.2
