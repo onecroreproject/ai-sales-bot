@@ -21,6 +21,8 @@ async def test_knowledge_base_crud_and_filtering():
         email = f"kuser_{uuid.uuid4().hex[:6]}@test.com"
         comp = await create_company(db, CompanyCreate(name=f"Knowledge Corp {uuid.uuid4().hex[:4]}", website="https://kcorp.com"))
         user = await register_user(db, company_id=comp.id, email=email, password="password123")
+        user.email_verified = True
+        await db.commit()
         login = await login_user(db, email=email, password="password123")
         token = login["access_token"]
 

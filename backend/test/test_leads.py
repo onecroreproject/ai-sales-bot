@@ -17,6 +17,8 @@ async def test_lead_management_crud_and_status_update():
         email = f"lead_admin_{uuid.uuid4().hex[:6]}@test.com"
         comp = await create_company(db, CompanyCreate(name=f"Leads Inc {uuid.uuid4().hex[:4]}", website="https://leadsinc.com"))
         user = await register_user(db, company_id=comp.id, email=email, password="password123")
+        user.email_verified = True
+        await db.commit()
         login = await login_user(db, email=email, password="password123")
         token = login["access_token"]
 

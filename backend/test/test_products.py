@@ -16,6 +16,8 @@ async def test_products_authorization_and_isolation():
         email = f"usera_prod_{uuid.uuid4().hex[:6]}@test.com"
         comp_a = await create_company(db, CompanyCreate(name=f"Company A {uuid.uuid4().hex[:4]}", website="https://a.com"))
         user_a = await register_user(db, company_id=comp_a.id, email=email, password="password123")
+        user_a.email_verified = True
+        await db.commit()
         login_a = await login_user(db, email=email, password="password123")
         token_a = login_a["access_token"]
 

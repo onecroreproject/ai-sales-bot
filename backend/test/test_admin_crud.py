@@ -25,6 +25,8 @@ async def test_full_admin_crud_and_dashboard_stats():
         email = f"admin_crud_{uuid.uuid4().hex[:6]}@test.com"
         comp = await create_company(db, CompanyCreate(name=f"Admin Corp {uuid.uuid4().hex[:4]}", website="https://admincorp.com"))
         user = await register_user(db, company_id=comp.id, email=email, password="password123")
+        user.email_verified = True
+        await db.commit()
         login = await login_user(db, email=email, password="password123")
         token = login["access_token"]
         headers = {"Authorization": f"Bearer {token}"}

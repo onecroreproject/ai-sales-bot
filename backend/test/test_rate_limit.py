@@ -5,8 +5,8 @@ client = TestClient(app)
 
 
 def test_auth_login_rate_limit():
-    # Attempt 5 login calls (within limit)
-    for _ in range(5):
+    # Attempt 20 login calls (within limit)
+    for _ in range(20):
         response = client.post(
             "/api/v1/auth/login",
             json={"email": "nonexistent@test.com", "password": "wrongpassword"}
@@ -14,7 +14,7 @@ def test_auth_login_rate_limit():
         # Should be 401 Unauthorized, not 429
         assert response.status_code == 401
 
-    # 6th attempt exceeds the 5/minute rate limit
+    # 21st attempt exceeds the 20/minute rate limit
     exceeded_response = client.post(
         "/api/v1/auth/login",
         json={"email": "nonexistent@test.com", "password": "wrongpassword"}
@@ -22,4 +22,4 @@ def test_auth_login_rate_limit():
     assert exceeded_response.status_code == 429
     body = exceeded_response.json()
     assert body["error"] == "Rate limit exceeded"
-    assert "limit of 5 per 1 minute exceeded" in body["detail"]
+    assert "limit of 20 per 1 minute exceeded" in body["detail"]

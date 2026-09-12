@@ -23,6 +23,8 @@ async def test_rag_search_knowledge_endpoint():
         email = f"search_admin_{uuid.uuid4().hex[:6]}@test.com"
         comp = await create_company(db, CompanyCreate(name=f"Search Corp {uuid.uuid4().hex[:4]}", website="https://searchcorp.com"))
         user = await register_user(db, company_id=comp.id, email=email, password="password123")
+        user.email_verified = True
+        await db.commit()
         login = await login_user(db, email=email, password="password123")
         token = login["access_token"]
 

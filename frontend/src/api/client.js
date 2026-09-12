@@ -1,4 +1,4 @@
-const BASE_URL = '';
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export function getAuthToken() {
   return localStorage.getItem('access_token');
@@ -36,7 +36,15 @@ async function request(endpoint, options = {}) {
     return true;
   }
 
-  const data = await response.json();
+  let data = {};
+  try {
+    data = await response.json();
+  } catch (err) {
+    if (!response.ok) {
+      throw new Error(`Server returned error ${response.status}: ${response.statusText}`);
+    }
+  }
+
   if (!response.ok) {
     throw new Error(data.detail || data.message || 'API request failed');
   }
