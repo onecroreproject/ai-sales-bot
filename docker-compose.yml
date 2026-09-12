@@ -35,14 +35,22 @@ services:
       db:
         condition: service_healthy
 
-    ports:
-      - "127.0.0.1:18000:8000"
-
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@db:5432/ai_sales_bot
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai_sales_bot_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
