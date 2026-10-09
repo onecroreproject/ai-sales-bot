@@ -8,8 +8,7 @@ pydantic-settings
 python-dotenv
 openai
 python-multipart
-passlib[bcrypt]
-bcrypt==3.2.2
+pwdlib[bcrypt]
 python-jose[cryptography]
 pytest
 httpx
