@@ -377,32 +377,6 @@ export default function LoginModal({ onLogin, onRegister }) {
             </div>
           )}
 
-          {/* Verification Direct Link Banner */}
-          {verificationUrl && (
-            <div style={{
-              background: 'rgba(99, 102, 241, 0.12)',
-              border: '1px solid rgba(99, 102, 241, 0.35)',
-              padding: '16px',
-              borderRadius: '12px',
-              marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#818cf8', fontWeight: 600, fontSize: '13px', marginBottom: '6px' }}>
-                <MailCheck size={18} /> Quick Email Verification Link
-              </div>
-              <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px', lineHeight: '1.4' }}>
-                Click below to verify immediately and access your company dashboard:
-              </p>
-              <button
-                type="button"
-                onClick={() => handleSimulateVerification(verificationUrl)}
-                disabled={verifying}
-                className="btn-primary"
-                style={{ width: '100%', justifyContent: 'center', fontSize: '13px' }}
-              >
-                <ExternalLink size={14} /> {verifying ? 'Verifying Email...' : 'Verify Email & Activate Account'}
-              </button>
-            </div>
-          )}
 
           {/* Authentication Form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
