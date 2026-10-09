@@ -86,18 +86,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "🚀 Starting Automated Deployment on Server..."
-            cd /var/www/AI-Sales-Bot || git clone ${{ github.repositoryUrl }} /var/www/AI-Sales-Bot
-            cd /var/www/AI-Sales-Bot
+            set -e
+            echo "Starting Docker deployment..."
+            cd /var/www/ai-sales-bot || cd /var/www/AI-Sales-Bot
             git pull origin main
-
-            # Update Backend
-            cd backend
-            source .venv/bin/activate || python3 -m venv .venv && source .venv/bin/activate
-            pip install -r requirements.txt
-            alembic upgrade head || echo "Database migrations updated"
-            
-            # Restart Systemd / Uvicorn Service
-            sudo systemctl restart ai-sales-bot-backend || (fuser -k 8000/tcp || true; kill -9 $(lsof -t -i:8000) || true; pkill -f uvicorn || true; sleep 3; nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &)
-
-            echo "✅ Deployment Successfully Completed!"
+            docker compose up -d --build
+            echo "Checking Docker services..."
+            docker compose ps
+            echo "Deployment completed successfully!"
