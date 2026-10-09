@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, Package, DollarSign, Search, ShieldAlert, CheckCircle, Clock } from 'lucide-react';
+import { Building2, Users, Package, DollarSign, Search, ShieldAlert, CheckCircle, Clock, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function SuperAdminTab() {
@@ -7,6 +7,7 @@ export default function SuperAdminTab() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [approvingId, setApprovingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     fetchSuperAdminData();
@@ -33,6 +34,20 @@ export default function SuperAdminTab() {
       alert('Failed to approve company: ' + err.message);
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  const handleDeleteCompany = async (companyId) => {
+    if (!window.confirm('WARNING: Are you sure you want to completely DELETE this company? This will erase all their users, leads, products, and knowledge vectors immediately!')) return;
+    
+    setDeletingId(companyId);
+    try {
+      await api.deleteCompany(companyId);
+      await fetchSuperAdminData();
+    } catch (err) {
+      alert('Failed to delete company: ' + err.message);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -168,7 +183,7 @@ export default function SuperAdminTab() {
                   <td style={{ padding: '16px 20px' }}>
                     <span className="badge badge-indigo">{comp.total_products} PRODUCTS</span>
                   </td>
-                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                  <td style={{ padding: '16px 20px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                     {!comp.is_verified ? (
                       <button
                         onClick={() => handleApproveCompany(comp.id)}
@@ -176,11 +191,21 @@ export default function SuperAdminTab() {
                         className="btn-primary"
                         style={{ padding: '6px 12px', fontSize: '12px' }}
                       >
-                        {approvingId === comp.id ? 'Approving...' : 'Verify & Approve Company'}
+                        {approvingId === comp.id ? 'Approving...' : 'Verify'}
                       </button>
                     ) : (
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No action needed</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: '6px' }}>Verified</span>
                     )}
+
+                    <button
+                        onClick={() => handleDeleteCompany(comp.id)}
+                        disabled={deletingId === comp.id || comp.id === 1}
+                        className="btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: '12px', color: comp.id === 1 ? 'gray' : '#fb7185', borderColor: comp.id === 1 ? 'transparent' : 'rgba(251, 113, 133, 0.3)' }}
+                        title={comp.id === 1 ? "Cannot delete super admin" : "Delete Company"}
+                      >
+                        {deletingId === comp.id ? 'Deleting...' : <Trash2 size={14} />}
+                    </button>
                   </td>
                 </tr>
               ))

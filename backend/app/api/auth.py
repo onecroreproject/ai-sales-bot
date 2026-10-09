@@ -45,7 +45,8 @@ async def register(
             password=user_data.password,
         )
 
-        verification_url = f"http://localhost:5173/#/verify-email?token={user.verification_token}"
+        origin = request.headers.get("origin") or "https://aichat.dlksoftwaresolutions.co.in"
+        verification_url = f"{origin}/#/verify-email?token={user.verification_token}"
 
         # Dispatch real email in background
         await send_verification_email(user.email, verification_url)
@@ -97,7 +98,8 @@ async def resend_verification_api(
         await db.commit()
         await db.refresh(user)
 
-    verification_url = f"http://localhost:5173/#/verify-email?token={user.verification_token}"
+    origin = request.headers.get("origin") or "https://aichat.dlksoftwaresolutions.co.in"
+    verification_url = f"{origin}/#/verify-email?token={user.verification_token}"
     await send_verification_email(user.email, verification_url)
 
     return {

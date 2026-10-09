@@ -68,3 +68,28 @@ async def update_company(
         raise
 
     return company
+
+
+async def delete_company(
+    db: AsyncSession,
+    company_id: int,
+):
+    from sqlalchemy import delete
+    from app.models.user import User
+    from app.models.product import Product
+    from app.models.lead import Lead
+    from app.models.knowledge import Knowledge
+    from app.models.widget import WidgetConfig
+
+    try:
+        await db.execute(delete(User).where(User.company_id == company_id))
+        await db.execute(delete(Product).where(Product.company_id == company_id))
+        await db.execute(delete(Lead).where(Lead.company_id == company_id))
+        await db.execute(delete(Knowledge).where(Knowledge.company_id == company_id))
+        await db.execute(delete(WidgetConfig).where(WidgetConfig.company_id == company_id))
+        
+        await db.execute(delete(Company).where(Company.id == company_id))
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise

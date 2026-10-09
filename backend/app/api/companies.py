@@ -12,6 +12,7 @@ from app.services.company_service import (
     get_companies,
     get_company,
     update_company,
+    delete_company,
 )
 
 
@@ -124,3 +125,27 @@ async def update_company_api(
     except SQLAlchemyError:
         await db.rollback()
         raise HTTPException(status_code=500, detail="Unable to update company profile")
+
+
+@router.delete(
+    "/{company_id}",
+    status_code=204,
+)
+async def delete_company_api(
+    company_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a company and all its related data (Super Admin Only)."""
+    is_super_admin = (current_user.email == settings.SUPERADMIN_EMAIL)
+    if not is_super_admin:
+        raise HTTPException(status_code=403, detail="Only Super Admins can delete companies.")
+        
+    if company_id == 1:
+        raise HTTPException(status_code=400, detail="Cannot delete the root superadmin company.")
+
+    try:
+        await delete_company(db, company_id)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Unable to delete company")
