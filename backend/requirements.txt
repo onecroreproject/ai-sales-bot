@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-sqlalchemy
+sqlalchemy[asyncio]
 psycopg2-binary
 alembic
 pydantic
@@ -9,6 +9,7 @@ python-dotenv
 openai
 python-multipart
 passlib[bcrypt]
+bcrypt==3.2.2
 python-jose[cryptography]
 pytest
 httpx
