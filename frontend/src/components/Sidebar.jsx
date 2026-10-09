@@ -11,13 +11,19 @@ import {
   X,
   Activity,
   CreditCard,
-  Settings
+  Settings,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, user, company }) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const navItems = [
+  const isSuperAdmin = user?.email === 'superadmin@platform.com' || company?.id === 1;
+
+  const navItems = isSuperAdmin ? [
+    { id: 'superadmin', label: 'Command Center', icon: ShieldAlert },
+    { id: 'settings', label: 'Platform Settings', icon: Settings },
+  ] : [
     { id: 'overview', label: 'Home', icon: BarChart3 },
     { id: 'leads', label: 'Leads Pipeline', icon: Users },
     { id: 'products', label: 'Product Catalog', icon: Package },
