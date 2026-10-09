@@ -63,7 +63,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Static assets
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/api/static", StaticFiles(directory="app/static"), name="static")
 
 # Include Routers
 app.include_router(products_router)
