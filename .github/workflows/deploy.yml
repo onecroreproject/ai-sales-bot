@@ -98,6 +98,6 @@ jobs:
             alembic upgrade head || echo "Database migrations updated"
             
             # Restart Systemd / Uvicorn Service
-            sudo systemctl restart ai-sales-bot-backend || uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+            sudo systemctl restart ai-sales-bot-backend || (pkill -f uvicorn || true; sleep 2; nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &)
 
             echo "✅ Deployment Successfully Completed!"
