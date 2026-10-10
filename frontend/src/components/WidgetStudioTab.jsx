@@ -104,21 +104,42 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
               Branding & Launcher Icon
             </h3>
 
-            {/* Custom Logo Image URL Input */}
+            {/* Custom Logo Image Upload & URL Input */}
             <div style={{ background: 'var(--bg-primary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
               <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <ImageIcon size={16} color="var(--accent-indigo)" /> Custom Company Logo Image URL (Optional)
+                <ImageIcon size={16} color="var(--accent-indigo)" /> Custom Company Logo Image
               </label>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                Upload your company logo (e.g. <code>https://mycompany.com/logo.png</code>). If set, this logo will be displayed inside your circular floating chat launcher!
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                Upload your company logo from your computer, or paste a URL. If set, this logo will be displayed inside your circular floating chat launcher!
               </p>
-              <input
-                type="url"
-                placeholder="https://example.com/company-logo.png"
-                value={customIconUrl}
-                onChange={(e) => setCustomIconUrl(e.target.value)}
-                style={{ width: '100%' }}
-              />
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* File Upload */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setCustomIconUrl(reader.result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ width: '100%', padding: '10px', border: '1px dashed var(--border-glass)', borderRadius: '8px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', cursor: 'pointer' }}
+                />
+                
+                {/* URL Input Fallback */}
+                <input
+                  type="text"
+                  placeholder="Or paste a URL: https://example.com/company-logo.png"
+                  value={customIconUrl}
+                  onChange={(e) => setCustomIconUrl(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
             </div>
 
             {/* 10 Default Preset Icons */}
