@@ -44,7 +44,8 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
-
+      EMAILS_FROM_EMAIL: ${SMTP_USER}
+      EMAILS_FROM_NAME: "AI Sales Bot"
   frontend:
     build:
       context: ./frontend
@@ -52,7 +53,6 @@ services:
     container_name: ai_sales_bot_frontend
     restart: always
     ports:
-      ports:
       - "8105:80"
     depends_on:
       - api
