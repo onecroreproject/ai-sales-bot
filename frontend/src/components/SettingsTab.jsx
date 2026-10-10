@@ -6,6 +6,11 @@ export default function SettingsTab({ company, onUpdateCompany }) {
   const [name, setName] = useState(company?.name || '');
   const [website, setWebsite] = useState(company?.website || '');
   const [description, setDescription] = useState(company?.description || '');
+  
+  // BYOK Settings
+  const [llmProvider, setLlmProvider] = useState(company?.llm_provider || 'openai');
+  const [llmModel, setLlmModel] = useState(company?.llm_model || 'gpt-4o-mini');
+  const [llmApiKey, setLlmApiKey] = useState(company?.llm_api_key || '');
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -14,7 +19,14 @@ export default function SettingsTab({ company, onUpdateCompany }) {
     setSaving(true);
     try {
       if (company?.id) {
-        await api.updateCompany(company.id, { name, website, description });
+        await api.updateCompany(company.id, { 
+          name, 
+          website, 
+          description,
+          llm_provider: llmProvider,
+          llm_model: llmModel,
+          llm_api_key: llmApiKey ? llmApiKey : null
+        });
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
       }
@@ -54,6 +66,33 @@ export default function SettingsTab({ company, onUpdateCompany }) {
           <div>
             <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Business Description / Focus</label>
             <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your products or services..." style={{ width: '100%', resize: 'vertical' }} />
+          </div>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Key size={18} color="var(--accent-indigo)" /> AI Engine (BYOK)
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>AI Provider</label>
+              <select value={llmProvider} onChange={(e) => setLlmProvider(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="google">Google (Gemini)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>AI Model</label>
+              <input type="text" value={llmModel} onChange={(e) => setLlmModel(e.target.value)} placeholder="e.g. gpt-4o-mini, claude-3-haiku-20240307" style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Your API Key</label>
+            <input type="password" value={llmApiKey} onChange={(e) => setLlmApiKey(e.target.value)} placeholder="sk-..." style={{ width: '100%' }} />
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+              We will use this key exclusively for your company's chatbot traffic.
+            </p>
           </div>
 
           <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>

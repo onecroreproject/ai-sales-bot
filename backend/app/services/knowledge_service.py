@@ -5,7 +5,8 @@ from app.ai.embeddings import create_embedding
 from app.models.product import Product
 from app.models.product_knowledge import ProductKnowledge
 from app.schemas.knowledge import KnowledgeCreate, KnowledgeUpdate
-
+from app.services.company_service import get_company
+from app.core.config import settings
 
 async def create_knowledge(
     db: AsyncSession,
@@ -22,8 +23,11 @@ async def create_knowledge(
         product = result.scalar_one_or_none()
         if product is None:
             raise ValueError("Product not found for this company")
+            
+    company = await get_company(db, knowledge_data.company_id)
+    api_key = company.llm_api_key if company else settings.OPENAI_API_KEY
 
-    embedding = await create_embedding(knowledge_data.content)
+    embedding = await create_embedding(knowledge_data.content, api_key=api_key)
 
     knowledge = ProductKnowledge(
         company_id=knowledge_data.company_id,
@@ -88,8 +92,11 @@ async def update_knowledge(
         knowledge.product_id = knowledge_data.product_id
 
     if knowledge_data.content is not None and knowledge_data.content != knowledge.content:
+        company = await get_company(db, company_id)
+        api_key = company.llm_api_key if company else settings.OPENAI_API_KEY
+        
         knowledge.content = knowledge_data.content
-        knowledge.embedding = await create_embedding(knowledge_data.content)
+        knowledge.embedding = await create_embedding(knowledge_data.content, api_key=api_key)
 
     try:
         await db.commit()

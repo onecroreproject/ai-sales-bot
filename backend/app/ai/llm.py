@@ -29,10 +29,10 @@ class SalesAssistantResponse(BaseModel):
     lead: LeadInfo | None = Field(default=None, description="Lead details object when lead_ready is true")
 
 
-def _get_async_client() -> AsyncOpenAI:
+def _get_async_client(api_key: str | None = None) -> AsyncOpenAI:
     """Lazy initialization of the AsyncOpenAI client configured with timeouts and retries."""
     return AsyncOpenAI(
-        api_key=settings.OPENAI_API_KEY,
+        api_key=api_key or settings.OPENAI_API_KEY,
         timeout=settings.OPENAI_TIMEOUT_SECONDS,
         max_retries=settings.OPENAI_MAX_RETRIES,
     )
@@ -42,6 +42,7 @@ async def generate_response_with_usage(
     question: str,
     context: str,
     history: list[dict[str, Any]] | None = None,
+    api_key: str | None = None,
 ) -> tuple[SalesAssistantResponse, dict[str, int]]:
     """
     Asynchronously generates a structured sales assistant response and returns token usage details.
@@ -52,7 +53,7 @@ async def generate_response_with_usage(
         history=history,
     )
 
-    client = _get_async_client()
+    client = _get_async_client(api_key)
 
     try:
         response = await client.beta.chat.completions.parse(
@@ -99,6 +100,7 @@ async def generate_response(
     question: str,
     context: str,
     history: list[dict[str, Any]] | None = None,
+    api_key: str | None = None,
 ) -> SalesAssistantResponse:
-    parsed_response, _ = await generate_response_with_usage(question, context, history)
+    parsed_response, _ = await generate_response_with_usage(question, context, history, api_key)
     return parsed_response

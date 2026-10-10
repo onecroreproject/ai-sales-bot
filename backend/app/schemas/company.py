@@ -14,6 +14,9 @@ class CompanyUpdate(BaseModel):
     description: str | None = None
     is_active: bool | None = None
     is_verified: bool | None = None
+    llm_provider: str | None = None
+    llm_model: str | None = None
+    llm_api_key: str | None = None
 
 
 class CompanyResponse(BaseModel):
@@ -23,6 +26,9 @@ class CompanyResponse(BaseModel):
     description: str | None = None
     is_active: bool
     is_verified: bool = False
+    llm_provider: str
+    llm_model: str
+    llm_api_key: str | None = None
 
     model_config = {
         "from_attributes": True

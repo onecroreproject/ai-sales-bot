@@ -14,6 +14,12 @@ class Company(Base):
     description: Mapped[str | None]
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    # BYOK / Multi-Model AI Settings
+    llm_provider: Mapped[str] = mapped_column(String(50), default="openai", server_default="openai")
+    llm_model: Mapped[str] = mapped_column(String(100), default="gpt-4o-mini", server_default="gpt-4o-mini")
+    llm_api_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )

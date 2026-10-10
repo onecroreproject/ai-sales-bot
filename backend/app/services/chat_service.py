@@ -10,8 +10,8 @@ from app.schemas.lead import LeadCreate
 from app.services.vector_search import search_knowledge
 from app.services.lead_service import create_lead
 from app.services.usage_service import record_token_usage
+from app.services.company_service import get_company
 from app.core.config import settings
-
 
 async def chat(
     db: AsyncSession,
@@ -19,6 +19,16 @@ async def chat(
     session_id: str,
     message: str,
 ):
+    # ---------------------------------------------------------
+    # 0. Fetch Company API Key
+    # ---------------------------------------------------------
+    
+    company = await get_company(db, company_id)
+    if not company:
+        raise ValueError("Company not found")
+        
+    api_key = company.llm_api_key or settings.OPENAI_API_KEY
+
     # ---------------------------------------------------------
     # 1. Find or create chat session
     # ---------------------------------------------------------
@@ -76,7 +86,7 @@ async def chat(
     # 4. RAG search
     # ---------------------------------------------------------
 
-    query_embedding = await create_embedding(message)
+    query_embedding = await create_embedding(message, api_key=api_key)
 
     results = await search_knowledge(
         db=db,
@@ -98,6 +108,7 @@ async def chat(
         question=message,
         context=context or "No relevant product information was found.",
         history=history,
+        api_key=api_key
     )
 
     await record_token_usage(
