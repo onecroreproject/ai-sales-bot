@@ -202,13 +202,44 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                Allowed Domain Whitelist (One origin per line)
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+                Currently Active Websites (Domain Whitelist)
               </label>
-              <textarea rows={3} value={allowedOrigins} onChange={(e) => setAllowedOrigins(e.target.value)} placeholder="https://example.com" style={{ width: '100%', fontFamily: 'monospace', fontSize: '13px' }} />
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                The bot will <b>only</b> load and work on the websites listed below. Type one website URL per line. (Use * to allow all websites).
+              </p>
+              <textarea rows={3} value={allowedOrigins} onChange={(e) => setAllowedOrigins(e.target.value)} placeholder="https://example.com" style={{ width: '100%', fontFamily: 'monospace', fontSize: '13px', marginBottom: '12px' }} />
+              
+              {/* Visual Active Domains List */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {allowedOrigins.split('\n').filter(d => d.trim()).length > 0 ? (
+                  allowedOrigins.split('\n').map((domain, idx) => {
+                    const cleanDomain = domain.trim();
+                    if (!cleanDomain) return null;
+                    const isAll = cleanDomain === '*';
+                    return (
+                      <span key={idx} style={{ 
+                        background: isAll ? '#fbbf24' : '#10b981', 
+                        color: isAll ? '#78350f' : '#ffffff', 
+                        padding: '4px 10px', 
+                        borderRadius: '12px', 
+                        fontSize: '11px', 
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        {isAll ? '⚠️ ANY WEBSITE (Not Secure)' : `✅ ${cleanDomain}`}
+                      </span>
+                    )
+                  })
+                ) : (
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No websites added yet.</span>
+                )}
+              </div>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={saving} style={{ marginTop: '8px', alignSelf: 'flex-start' }}>
+            <button type="submit" className="btn-primary" disabled={saving} style={{ marginTop: '16px', alignSelf: 'flex-start' }}>
               {saving ? 'Saving Changes...' : 'Save Settings'}
             </button>
           </form>
