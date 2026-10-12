@@ -12,6 +12,7 @@ import {
   Activity,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   MessageSquare
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, company }) {
     { id: 'leads', label: 'Leads Pipeline', icon: Users },
     { id: 'products', label: 'Product Catalog', icon: Package },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
+    { id: 'guardrails', label: 'AI Guardrails', icon: ShieldCheck },
     { id: 'widget', label: 'Widget Studio', icon: Sliders },
     { id: 'usage', label: 'Usage', icon: Activity },
     { id: 'settings', label: 'Settings', icon: Settings },

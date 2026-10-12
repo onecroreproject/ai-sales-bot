@@ -24,6 +24,13 @@ class Company(Base):
     bot_persona: Mapped[str] = mapped_column(String(50), default="professional", server_default="professional")
     custom_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Dynamic AI Safety & Guardrails (Phase 3/4)
+    guardrail_blocked_topics: Mapped[str | None] = mapped_column(Text, nullable=True)
+    guardrail_competitors: Mapped[str | None] = mapped_column(Text, nullable=True)
+    guardrail_pii_masking: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    guardrail_custom_refusal: Mapped[str | None] = mapped_column(Text, nullable=True)
+    guardrail_tone_strictness: Mapped[str] = mapped_column(String(50), default="standard", server_default="standard")
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )

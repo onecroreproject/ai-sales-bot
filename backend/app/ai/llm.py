@@ -57,6 +57,7 @@ async def generate_response_with_usage(
     provider: str | None = None,
     persona: str = "professional",
     custom_instructions: str | None = None,
+    guardrails: dict | None = None,
 ) -> tuple[SalesAssistantResponse, dict[str, int]]:
     """
     Asynchronously generates a structured sales assistant response and returns token usage details.
@@ -67,6 +68,7 @@ async def generate_response_with_usage(
         history=history,
         persona=persona,
         custom_instructions=custom_instructions,
+        guardrails=guardrails,
     )
 
     target_model = model or settings.OPENAI_MODEL

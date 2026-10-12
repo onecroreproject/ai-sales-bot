@@ -12,7 +12,9 @@ import {
   RefreshCw,
   ExternalLink,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  UploadCloud,
+  FileText
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -32,6 +34,14 @@ export default function KnowledgeTab({
   const [productId, setProductId] = useState('');
   const [content, setContent] = useState('');
   const [resolvingQueryId, setResolvingQueryId] = useState(null);
+
+  // Document Upload State
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadProductId, setUploadProductId] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
 
   // Crawler State
   const [isCrawlModalOpen, setIsCrawlModalOpen] = useState(false);
@@ -147,6 +157,29 @@ export default function KnowledgeTab({
     }
   };
 
+  const handleUploadDocument = async (e) => {
+    e.preventDefault();
+    if (!selectedFile || uploading) return;
+    setUploading(true);
+    setUploadError(null);
+    setUploadResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      if (uploadProductId) {
+        formData.append('product_id', uploadProductId);
+      }
+      const res = await api.uploadDocument(formData);
+      setUploadResult(res);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setUploadError(err.message || 'Document processing failed. Please check file format.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const pendingUnansweredCount = unansweredQueries.filter(q => q.status === 'pending').length;
 
   return (
@@ -158,11 +191,32 @@ export default function KnowledgeTab({
             <BookOpen size={24} color="var(--accent-indigo)" /> Knowledge Base & RAG Index
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-            Train your AI sales bot with URL auto-crawling, product documentation, and missed question learning.
+            Train your AI sales bot with multi-format files (PDF, Word, Excel, CSV), website crawling, and knowledge learning.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button 
+            onClick={() => {
+              setSelectedFile(null);
+              setUploadResult(null);
+              setUploadError(null);
+              setIsUploadModalOpen(true);
+            }} 
+            className="btn-secondary"
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              background: 'rgba(16, 185, 129, 0.1)',
+              color: '#10b981',
+              fontWeight: 600
+            }}
+          >
+            <UploadCloud size={16} /> 📁 Upload Document
+          </button>
+
           <button 
             onClick={() => {
               setCrawlResult(null);
@@ -180,7 +234,7 @@ export default function KnowledgeTab({
               fontWeight: 600
             }}
           >
-            <Globe size={16} /> 🌐 Auto-Crawl Website URL
+            <Globe size={16} /> 🌐 Auto-Crawl URL
           </button>
 
           <button onClick={openCreateModal} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -265,6 +319,7 @@ export default function KnowledgeTab({
             knowledgeList.map((item) => {
               const product = products.find((p) => p.id === item.product_id);
               const isWebCrawl = item.content.startsWith('[Source:');
+              const isDoc = item.content.startsWith('[File:');
               return (
                 <div key={item.id} className="glass-card glass-card-hover" style={{ padding: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
                   <div style={{ flex: 1 }}>
@@ -275,6 +330,11 @@ export default function KnowledgeTab({
                       {isWebCrawl ? (
                         <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <Globe size={12} /> Webpage Crawl
+                        </span>
+                      ) : null}
+                      {isDoc ? (
+                        <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <FileText size={12} /> Document Upload
                         </span>
                       ) : null}
                       {product && (
@@ -469,6 +529,115 @@ export default function KnowledgeTab({
                   ) : (
                     <>
                       <Sparkles size={16} /> Start Auto-Crawl & Index
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Upload Document Modal (.pdf, .docx, .xlsx, .csv, .txt) */}
+      {isUploadModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="glass-card" style={{ width: '600px', padding: '28px', maxWidth: '92%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                <UploadCloud size={20} />
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Upload Document & Vector Index
+              </h2>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '20px' }}>
+              Upload company documents, price books, FAQ guides, or product catalogs. Supported formats: <strong>PDF (.pdf)</strong>, <strong>Word (.docx)</strong>, <strong>Excel (.xlsx)</strong>, <strong>CSV (.csv)</strong>, and <strong>Plain Text (.txt)</strong>.
+            </p>
+
+            <form onSubmit={handleUploadDocument} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Choose Document File *
+                </label>
+                <input
+                  type="file"
+                  required
+                  accept=".pdf,.docx,.xlsx,.csv,.txt"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    setSelectedFile(f || null);
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    border: '1px dashed var(--border-glass)', 
+                    background: 'var(--bg-secondary)', 
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer'
+                  }}
+                />
+                {selectedFile && (
+                  <div style={{ fontSize: '12.5px', color: '#10b981', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FileText size={14} /> Selected: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Associated Product (Optional)
+                </label>
+                <select 
+                  value={uploadProductId} 
+                  onChange={(e) => setUploadProductId(e.target.value)} 
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                >
+                  <option value="">General Company Knowledge (No specific product)</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {uploadError && (
+                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '13px' }}>
+                  {uploadError}
+                </div>
+              )}
+
+              {uploadResult && (
+                <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '13px' }}>
+                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <CheckCircle2 size={16} /> File Ingested Successfully!
+                  </div>
+                  <div>File: <strong>{uploadResult.filename}</strong> ({uploadResult.file_type.toUpperCase()})</div>
+                  <div>Created and vector-indexed <strong>{uploadResult.chunks_indexed}</strong> knowledge chunks ({uploadResult.total_characters} characters) into RAG database.</div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsUploadModalOpen(false)} 
+                  className="btn-secondary" 
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  {uploadResult ? 'Close' : 'Cancel'}
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={uploading || !selectedFile} 
+                  className="btn-primary" 
+                  style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {uploading ? (
+                    <>
+                      <RefreshCw size={15} className="animate-spin" /> Parsing & Embedding...
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud size={16} /> Upload & Vector Index
                     </>
                   )}
                 </button>

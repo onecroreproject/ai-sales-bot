@@ -15,29 +15,27 @@ async def create_lead(
     db: AsyncSession,
     lead_data: LeadCreate,
 ):
-    result = await db.execute(
-        select(ChatSession).where(
-            ChatSession.company_id == lead_data.company_id,
-            ChatSession.session_id == lead_data.session_id,
+    session_db_id = None
+    if lead_data.session_id:
+        result = await db.execute(
+            select(ChatSession).where(
+                ChatSession.company_id == lead_data.company_id,
+                ChatSession.session_id == lead_data.session_id,
+            )
         )
-    )
-    session = result.scalar_one_or_none()
-
-    if session is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat session not found",
-        )
+        session = result.scalar_one_or_none()
+        if session:
+            session_db_id = session.id
 
     lead = Lead(
         company_id=lead_data.company_id,
-        session_id=session.id,
+        session_id=session_db_id,
         name=lead_data.name,
         email=lead_data.email,
         phone=lead_data.phone,
         company_name=lead_data.company_name,
         requirement=lead_data.requirement,
-        status="new",
+        status=lead_data.status or "new",
     )
 
     try:
@@ -63,11 +61,30 @@ async def get_leads(
 ):
     try:
         result = await db.execute(
-            select(Lead)
+            select(Lead, ChatSession.location, ChatSession.origin_domain)
+            .outerjoin(ChatSession, Lead.session_id == ChatSession.id)
             .where(Lead.company_id == company_id)
             .order_by(Lead.created_at.desc())
         )
-        return result.scalars().all()
+        rows = result.all()
+        leads_list = []
+        for lead, loc, domain in rows:
+            lead_dict = {
+                "id": lead.id,
+                "company_id": lead.company_id,
+                "session_id": lead.session_id,
+                "name": lead.name,
+                "email": lead.email,
+                "phone": lead.phone,
+                "company_name": lead.company_name,
+                "requirement": lead.requirement,
+                "status": lead.status,
+                "created_at": lead.created_at,
+                "location": loc or "Online Visitor",
+                "origin_domain": domain or "Direct / Widget",
+            }
+            leads_list.append(lead_dict)
+        return leads_list
 
     except SQLAlchemyError:
         await db.rollback()
@@ -83,18 +100,34 @@ async def get_lead(
     company_id: int,
 ):
     result = await db.execute(
-        select(Lead).where(
+        select(Lead, ChatSession.location, ChatSession.origin_domain)
+        .outerjoin(ChatSession, Lead.session_id == ChatSession.id)
+        .where(
             Lead.id == lead_id,
             Lead.company_id == company_id,
         )
     )
-    lead = result.scalar_one_or_none()
-    if lead is None:
+    row = result.first()
+    if row is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lead not found",
         )
-    return lead
+    lead, loc, domain = row
+    return {
+        "id": lead.id,
+        "company_id": lead.company_id,
+        "session_id": lead.session_id,
+        "name": lead.name,
+        "email": lead.email,
+        "phone": lead.phone,
+        "company_name": lead.company_name,
+        "requirement": lead.requirement,
+        "status": lead.status,
+        "created_at": lead.created_at,
+        "location": loc or "Online Visitor",
+        "origin_domain": domain or "Direct / Widget",
+    }
 
 
 # ---------------------------------------------------------

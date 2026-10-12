@@ -84,9 +84,25 @@ export const api = {
   createKnowledge: (data) => request('/api/v1/knowledge', { method: 'POST', body: JSON.stringify(data) }),
   updateKnowledge: (id, data) => request(`/api/v1/knowledge/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteKnowledge: (id) => request(`/api/v1/knowledge/${id}`, { method: 'DELETE' }),
+  uploadDocument: async (formData) => {
+    const token = getAuthToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${BASE_URL}/api/v1/knowledge/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'File upload failed');
+    }
+    return await res.json();
+  },
 
   // Leads
   getLeads: (companyId) => request(`/api/v1/leads?company_id=${companyId}`),
+  createLead: (data) => request('/api/v1/leads', { method: 'POST', body: JSON.stringify(data) }),
   updateLead: (id, companyId, data) => request(`/api/v1/leads/${id}?company_id=${companyId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteLead: (id) => request(`/api/v1/leads/${id}`, { method: 'DELETE' }),
 

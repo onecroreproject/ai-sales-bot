@@ -174,6 +174,43 @@ async def crawl_website_url_api(
         raise HTTPException(status_code=500, detail=f"Web crawling error: {str(e)}")
 
 
+from fastapi import UploadFile, File, Form
+from app.services.document_parser import parse_and_index_document
+
+
+@router.post("/upload")
+async def upload_document_api(
+    file: UploadFile = File(...),
+    product_id: int | None = Form(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload and vectorize PDF, DOCX, XLSX, CSV, or TXT into Knowledge Base."""
+    company = await get_company(db, current_user.company_id)
+    api_key = company.llm_api_key if company else None
+
+    content_bytes = await file.read()
+    if not content_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    try:
+        result = await parse_and_index_document(
+            db=db,
+            company_id=current_user.company_id,
+            filename=file.filename or "uploaded_document",
+            file_bytes=content_bytes,
+            product_id=product_id,
+            api_key=api_key,
+        )
+        return result
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Document parsing error: {str(e)}")
+
+
 @router.get("/unanswered-queries")
 async def list_unanswered_queries_api(
     status: str | None = None,

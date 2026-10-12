@@ -19,6 +19,11 @@ class CompanyUpdate(BaseModel):
     llm_api_key: str | None = None
     bot_persona: str | None = None
     custom_instructions: str | None = None
+    guardrail_blocked_topics: str | None = None
+    guardrail_competitors: str | None = None
+    guardrail_pii_masking: bool | None = None
+    guardrail_custom_refusal: str | None = None
+    guardrail_tone_strictness: str | None = None
 
 
 class CompanyResponse(BaseModel):
@@ -33,6 +38,11 @@ class CompanyResponse(BaseModel):
     llm_api_key: str | None = None
     bot_persona: str = "professional"
     custom_instructions: str | None = None
+    guardrail_blocked_topics: str | None = None
+    guardrail_competitors: str | None = None
+    guardrail_pii_masking: bool = True
+    guardrail_custom_refusal: str | None = None
+    guardrail_tone_strictness: str = "standard"
 
     model_config = {
         "from_attributes": True

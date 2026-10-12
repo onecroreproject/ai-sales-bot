@@ -19,3 +19,6 @@ email-validator
 slowapi
 asyncpg
 sshtunnel
+pypdf
+python-docx
+openpyxl

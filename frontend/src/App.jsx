@@ -10,6 +10,7 @@ import UsageTab from './components/UsageTab';
 import SettingsTab from './components/SettingsTab';
 import SuperAdminTab from './components/SuperAdminTab';
 import ConversationsTab from './components/ConversationsTab';
+import GuardrailsTab from './components/GuardrailsTab';
 import LoginModal from './components/LoginModal';
 import { 
   CheckCircle2, 
@@ -30,7 +31,8 @@ import {
   Bot,
   Layers,
   Trash2,
-  MessageSquare
+  MessageSquare,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function App() {
@@ -215,6 +217,7 @@ export default function App() {
       { id: 'f-leads', title: 'Leads Pipeline', desc: 'Manage visitor contacts and CRM leads', tab: 'leads', icon: Users },
       { id: 'f-products', title: 'Product Catalog', desc: 'Manage products, prices and inventory', tab: 'products', icon: Package },
       { id: 'f-knowledge', title: 'Knowledge Base (RAG)', desc: 'Upload documents & FAQs for AI training', tab: 'knowledge', icon: BookOpen },
+      { id: 'f-guardrails', title: 'AI Guardrails & Content Safety', desc: 'Block topics, filter competitors, mask PII and enforce safety', tab: 'guardrails', icon: ShieldCheck },
       { id: 'f-widget', title: 'Widget Studio', desc: 'Customize chatbot branding, colors and embed code', tab: 'widget', icon: Sliders },
       { id: 'f-usage', title: 'Usage Analytics', desc: 'Track token usage and AI cost metrics', tab: 'usage', icon: Activity },
       { id: 'f-settings', title: 'Workspace Settings & BYOK', desc: 'Company profile and custom AI models', tab: 'settings', icon: SettingsIcon },
@@ -378,6 +381,11 @@ export default function App() {
   };
 
   // Handlers for Leads
+  const handleCreateLead = async (data) => {
+    if (!company) return;
+    await api.createLead({ ...data, company_id: company.id });
+    refreshData(company.id);
+  };
   const handleUpdateLead = async (id, data) => {
     if (!company) return;
     await api.updateLead(id, company.id, data);
@@ -1024,6 +1032,7 @@ export default function App() {
             <LeadsTab
               leads={leads}
               companyId={company?.id}
+              onCreateLead={handleCreateLead}
               onUpdateLead={handleUpdateLead}
               onDeleteLead={handleDeleteLead}
               loading={loading}
@@ -1049,6 +1058,12 @@ export default function App() {
               onDeleteKnowledge={handleDeleteKnowledge}
               onRefresh={() => company && refreshData(company.id)}
               loading={loading}
+            />
+          )}
+          {activeTab === 'guardrails' && (
+            <GuardrailsTab
+              company={company}
+              onUpdateCompany={handleUpdateCompany}
             />
           )}
           {activeTab === 'widget' && (

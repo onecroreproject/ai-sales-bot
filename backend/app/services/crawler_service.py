@@ -134,7 +134,11 @@ async def crawl_and_index_url(
 
     for chunk in chunks:
         formatted_content = f"[Source: {title} | {clean_url}]\n{chunk}"
-        embedding = await create_embedding(formatted_content, api_key=api_key)
+        try:
+            embedding = await create_embedding(formatted_content, api_key=api_key)
+        except Exception as embed_err:
+            logger.warning(f"Could not generate embedding for crawled chunk: {embed_err}. Using placeholder embedding.")
+            embedding = [0.0] * 1536
 
         knowledge_entry = ProductKnowledge(
             company_id=company_id,

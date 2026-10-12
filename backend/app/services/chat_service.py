@@ -39,6 +39,14 @@ async def chat(
     bot_persona = getattr(company, "bot_persona", "professional") or "professional"
     custom_instructions = getattr(company, "custom_instructions", None)
 
+    guardrails_config = {
+        "blocked_topics": getattr(company, "guardrail_blocked_topics", None),
+        "competitors": getattr(company, "guardrail_competitors", None),
+        "pii_masking": getattr(company, "guardrail_pii_masking", True),
+        "custom_refusal": getattr(company, "guardrail_custom_refusal", None),
+        "tone_strictness": getattr(company, "guardrail_tone_strictness", "standard"),
+    }
+
     # ---------------------------------------------------------
     # 1. Find or create chat session with location & origin
     # ---------------------------------------------------------
@@ -160,6 +168,7 @@ async def chat(
             provider=llm_provider,
             persona=bot_persona,
             custom_instructions=custom_instructions,
+            guardrails=guardrails_config,
         )
 
         await record_token_usage(
