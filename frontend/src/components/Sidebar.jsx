@@ -10,7 +10,6 @@ import {
   Menu,
   X,
   Activity,
-  CreditCard,
   Settings,
   ShieldAlert
 } from 'lucide-react';
@@ -30,7 +29,6 @@ export default function Sidebar({ activeTab, setActiveTab, user, company }) {
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'widget', label: 'Widget Studio', icon: Sliders },
     { id: 'usage', label: 'Usage', icon: Activity },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

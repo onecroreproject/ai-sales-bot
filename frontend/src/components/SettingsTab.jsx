@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Building2, Shield, Key, Save, Check } from 'lucide-react';
+import { Settings, Building2, Key, Save, Check } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function SettingsTab({ company, onUpdateCompany }) {
@@ -49,7 +49,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '24px', alignItems: 'start' }}>
+      <div style={{ maxWidth: '850px', width: '100%' }}>
         {/* Main Settings Form */}
         <form onSubmit={handleSubmit} className="glass-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -105,22 +105,6 @@ export default function SettingsTab({ company, onUpdateCompany }) {
             </button>
           </div>
         </form>
-
-        {/* Security & Info Box */}
-        <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Shield size={16} color="var(--accent-emerald)" /> Workspace Security
-          </h3>
-
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-            Your tenant workspace is isolated with strict PostgreSQL row-level company filtering (`company_id`).
-          </div>
-
-          <div style={{ padding: '14px', background: 'var(--bg-primary)', borderRadius: '10px', border: '1px solid var(--border-glass)', fontSize: '12px' }}>
-            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Tenant Verification Status</div>
-            <span className="badge badge-emerald">VERIFIED & ACTIVE</span>
-          </div>
-        </div>
       </div>
     </div>
   );

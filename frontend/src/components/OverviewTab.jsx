@@ -7,7 +7,6 @@ import {
   Cpu, 
   DollarSign, 
   Activity, 
-  ExternalLink,
   Sparkles,
   Bot,
   Clock,
@@ -32,29 +31,6 @@ export default function OverviewTab({ stats, loading, company }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Botpress Style Top Highlight Banner */}
-      <div className="botpress-banner">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.9 }}>
-            <span>AI SALES BOT DESK</span>
-            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '10px', fontSize: '10px' }}>✓ INCLUDED</span>
-          </div>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>
-            AI Helpdesk & Lead Concierge for your Sales Team
-          </h2>
-          <p style={{ fontSize: '13px', opacity: 0.9, maxWidth: '600px' }}>
-            Escalate conversations to human agents, automatically capture leads, and answer product questions 24/7.
-          </p>
-        </div>
-        <button 
-          onClick={() => window.location.hash = '#/widget'} 
-          className="btn-secondary" 
-          style={{ background: '#ffffff', color: '#4f46e5', border: 'none', fontWeight: 700, padding: '10px 18px', flexShrink: 0 }}
-        >
-          Open Studio <ExternalLink size={15} />
-        </button>
-      </div>
-
       {/* Main Grid: Agent Card & Recent Activity Feed (Matching Botpress UI Screenshot) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
         {/* Left Column: Deployed Agent Card */}

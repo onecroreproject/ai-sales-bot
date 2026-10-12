@@ -7,7 +7,6 @@ import ProductsTab from './components/ProductsTab';
 import KnowledgeTab from './components/KnowledgeTab';
 import WidgetStudioTab from './components/WidgetStudioTab';
 import UsageTab from './components/UsageTab';
-import BillingTab from './components/BillingTab';
 import SettingsTab from './components/SettingsTab';
 import SuperAdminTab from './components/SuperAdminTab';
 import LoginModal from './components/LoginModal';
@@ -16,7 +15,6 @@ import {
   AlertCircle, 
   Search, 
   Bell, 
-  RefreshCw, 
   ChevronDown, 
   LogOut,
   Sparkles
@@ -301,9 +299,6 @@ export default function App() {
 
           {/* Right Header Action Icons & User Avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button className="btn-secondary" style={{ padding: '6px', borderRadius: '50%' }} title="Refresh Workspace" onClick={() => company && refreshData(company.id)}>
-              <RefreshCw size={16} />
-            </button>
             <button className="btn-secondary" style={{ padding: '6px', borderRadius: '50%' }} title="Notifications">
               <Bell size={16} />
             </button>
@@ -403,7 +398,6 @@ export default function App() {
             />
           )}
           {activeTab === 'usage' && <UsageTab stats={stats} loading={loading} />}
-          {activeTab === 'billing' && <BillingTab company={company} />}
           {activeTab === 'settings' && <SettingsTab company={company} onUpdateCompany={handleUpdateCompany} />}
           {activeTab === 'superadmin' && <SuperAdminTab />}
         </main>
