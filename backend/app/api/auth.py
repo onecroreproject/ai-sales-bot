@@ -11,6 +11,7 @@ from app.schemas.user import (
     UserCreate,
     LoginRequest,
     ForgotPasswordRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserResponse,
 )
@@ -18,8 +19,10 @@ from app.services.auth_service import (
     register_user,
     login_user,
     verify_email_token,
+    request_password_reset,
+    reset_user_password,
 )
-from app.services.email_service import send_verification_email
+from app.services.email_service import send_verification_email, send_password_reset_email
 import secrets
 
 
@@ -167,9 +170,43 @@ async def forgot_password(
     db: AsyncSession = Depends(get_db),
 ):
     """Initiate password recovery flow for registered company admin."""
+    token = await request_password_reset(db=db, email=forgot_data.email)
+    
+    if token:
+        origin = request.headers.get("origin") or "https://aichat.dlksoftwaresolutions.co.in"
+        reset_url = f"{origin}/#/reset-password?token={token}"
+        await send_password_reset_email(to_email=forgot_data.email, reset_url=reset_url)
+
     return {
         "message": f"If an account with {forgot_data.email} exists, password reset instructions have been sent."
     }
+
+
+@router.post("/reset-password")
+@limiter.limit("10/minute")
+async def reset_password_api(
+    request: Request,
+    response: Response,
+    reset_data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset password using a valid token."""
+    try:
+        user = await reset_user_password(
+            db=db,
+            token=reset_data.token,
+            new_password=reset_data.new_password,
+        )
+        return {
+            "success": True,
+            "message": "Password reset successfully! You can now log in with your new password.",
+            "email": user.email,
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        )
 
 
 @router.get(

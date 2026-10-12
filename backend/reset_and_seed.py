@@ -27,7 +27,7 @@ async def reset_and_seed_db():
     with engine.connect() as conn:
         conn.execute(text("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"))
         conn.execute(text("DELETE FROM alembic_version"))
-        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('6a81e3f89d1b')"))
+        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('7b92f4e90c2a')"))
         conn.commit()
     print("[RESET DB] Database tables recreated & Alembic version stamped successfully.")
 

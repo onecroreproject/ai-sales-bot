@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bot, 
   ArrowRight, 
@@ -16,14 +16,18 @@ import {
   Sparkles,
   ShieldCheck,
   Zap,
-  Layers
+  Layers,
+  KeyRound
 } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function LoginModal({ onLogin, onRegister }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'unverified'
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'unverified' | 'reset'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
   
   // Company registration fields
   const [companyName, setCompanyName] = useState('');
@@ -36,6 +40,25 @@ export default function LoginModal({ onLogin, onRegister }) {
   const [verificationUrl, setVerificationUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+
+  // Check URL hash for password reset token
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash;
+      if (hash.includes('reset-password')) {
+        const match = hash.match(/token=([^&]+)/);
+        if (match && match[1]) {
+          setResetToken(match[1]);
+          setMode('reset');
+          setError('');
+          setSuccess('');
+        }
+      }
+    };
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
 
   const validateEmail = (val) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,12 +84,23 @@ export default function LoginModal({ onLogin, onRegister }) {
     setSuccess('');
     setVerificationUrl('');
 
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address.');
-      return;
+    if (mode !== 'reset') {
+      if (!validateEmail(email)) {
+        setError('Please enter a valid email address.');
+        return;
+      }
     }
 
-    if (mode !== 'forgot' && mode !== 'unverified' && password.length < 8) {
+    if (mode === 'reset') {
+      if (newPassword.length < 8) {
+        setError('New password must be at least 8 characters long.');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setError('Passwords do not match. Please re-enter.');
+        return;
+      }
+    } else if (mode !== 'forgot' && mode !== 'unverified' && password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
     }
@@ -120,6 +154,14 @@ export default function LoginModal({ onLogin, onRegister }) {
       } else if (mode === 'forgot') {
         const res = await api.forgotPassword(email);
         setSuccess(res.message || 'Password reset instructions sent!');
+      } else if (mode === 'reset') {
+        const res = await api.resetPassword(resetToken, newPassword);
+        setSuccess(res.message || 'Password reset successfully! Please sign in with your new password.');
+        setMode('login');
+        setPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        window.location.hash = '';
       } else if (mode === 'unverified') {
         const res = await api.resendVerification(email);
         setSuccess(res.message || 'Verification link resent successfully!');
@@ -327,12 +369,14 @@ export default function LoginModal({ onLogin, onRegister }) {
               {mode === 'login' && 'Sign in to Dashboard'}
               {mode === 'register' && 'Create Company Account'}
               {mode === 'forgot' && 'Reset Password'}
+              {mode === 'reset' && 'Set New Password'}
               {mode === 'unverified' && 'Verify Email Address'}
             </h2>
             <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '4px' }}>
               {mode === 'login' && 'Enter your credentials to access your sales portal.'}
               {mode === 'register' && 'Set up your company workspace and admin profile.'}
               {mode === 'forgot' && 'Enter your account email to receive recovery link.'}
+              {mode === 'reset' && 'Enter and confirm your new password.'}
               {mode === 'unverified' && 'Complete email verification to access your workspace.'}
             </p>
           </div>
@@ -436,26 +480,79 @@ export default function LoginModal({ onLogin, onRegister }) {
               </>
             )}
 
-            {/* Email Address */}
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {mode === 'register' ? 'Admin Email Address *' : 'Email Address *'}
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                  type="email"
-                  required
-                  placeholder="admin@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={{ width: '100%', paddingLeft: '38px' }}
-                />
+            {/* Email Address (Not shown in reset mode) */}
+            {mode !== 'reset' && (
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {mode === 'register' ? 'Admin Email Address *' : 'Email Address *'}
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{ width: '100%', paddingLeft: '38px' }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Password Field */}
-            {mode !== 'forgot' && mode !== 'unverified' && (
+            {/* Reset Password Fields */}
+            {mode === 'reset' && (
+              <>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    New Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      placeholder="Minimum 8 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      style={{ width: '100%', paddingLeft: '38px', paddingRight: '40px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', color: '#64748b', cursor: 'pointer'
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Confirm New Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      placeholder="Re-enter new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      style={{ width: '100%', paddingLeft: '38px' }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Regular Password Field for Login & Register */}
+            {mode !== 'forgot' && mode !== 'unverified' && mode !== 'reset' && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -531,6 +628,7 @@ export default function LoginModal({ onLogin, onRegister }) {
               {loading ? 'Processing...' : (
                 mode === 'register' ? 'Register Account' :
                 mode === 'login' ? 'Sign In to Account' :
+                mode === 'reset' ? 'Save New Password' :
                 mode === 'unverified' ? 'Resend Email Verification' :
                 'Send Reset Password Instructions'
               )}
@@ -539,11 +637,11 @@ export default function LoginModal({ onLogin, onRegister }) {
           </form>
 
           {/* Footer Back Link */}
-          {mode === 'forgot' && (
+          {(mode === 'forgot' || mode === 'reset') && (
             <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px' }}>
               <button
                 type="button"
-                onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+                onClick={() => { setMode('login'); setError(''); setSuccess(''); window.location.hash = ''; }}
                 style={{ background: 'none', border: 'none', color: '#818cf8', fontWeight: 600, cursor: 'pointer' }}
               >
                 ← Back to Sign In

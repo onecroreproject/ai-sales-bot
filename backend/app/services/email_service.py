@@ -82,3 +82,51 @@ async def send_verification_email(to_email: str, verification_url: str):
     """
 
     return await asyncio.to_thread(_send_smtp_email_sync, to_email, subject, html_content)
+
+
+async def send_password_reset_email(to_email: str, reset_url: str):
+    """Asynchronously dispatches password recovery email via SMTP."""
+    subject = "Reset Your Password - AI Sales Bot Platform"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 20px; }}
+        .container {{ max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 36px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }}
+        .header {{ text-align: center; margin-bottom: 24px; }}
+        .logo {{ display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 12px; line-height: 48px; color: #fff; font-size: 24px; font-weight: bold; margin-bottom: 12px; }}
+        .title {{ font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0; }}
+        .text {{ font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px; }}
+        .btn {{ display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff !important; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); }}
+        .footer {{ margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; }}
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="logo">🔒</div>
+          <h1 class="title">Reset Your Password</h1>
+        </div>
+        <p class="text">
+          We received a request to reset the password for your <strong>AI Sales Bot</strong> account. Click the button below to choose a new password:
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="{reset_url}" class="btn" target="_blank">Reset Password</a>
+        </div>
+        <p class="text" style="font-size: 12px; color: #64748b;">
+          This link will expire in 1 hour. If you did not request a password reset, you can safely ignore this email.<br><br>
+          Direct link:<br>
+          <a href="{reset_url}" style="color: #6366f1;">{reset_url}</a>
+        </p>
+        <div class="footer">
+          &copy; 2026 AI Sales Bot Platform. All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    return await asyncio.to_thread(_send_smtp_email_sync, to_email, subject, html_content)
