@@ -39,6 +39,7 @@
     greeting_message: 'Hello! How can I help you today?',
     primary_color: '#4F46E5',
     widget_icon: 'Bot',
+    custom_icon_url: null,
     company_name: 'AI Sales Bot',
     is_enabled: true
   };
@@ -64,6 +65,14 @@
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
   }
 
+  function getIconOrAvatar(isHeader = false) {
+    if (config.custom_icon_url && typeof config.custom_icon_url === 'string' && config.custom_icon_url.trim()) {
+      const cls = isHeader ? 'ai-bot-header-avatar' : 'ai-bot-fab-avatar';
+      return `<img src="${config.custom_icon_url.trim()}" alt="Bot Avatar" class="${cls}" onerror="this.style.display='none';" />`;
+    }
+    return getIconSvg(config.widget_icon);
+  }
+
   // Inject Styles into Document
   function injectStyles(themeColor) {
     const styleId = 'ai-sales-bot-widget-styles';
@@ -81,7 +90,7 @@
         right: 24px;
         width: 60px;
         height: 60px;
-        border-radius: 30px;
+        border-radius: 50%;
         background-color: ${themeColor};
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
         cursor: pointer;
@@ -90,9 +99,11 @@
         justify-content: center;
         z-index: 999999;
         transition: transform 0.25s ease, box-shadow 0.25s ease;
-        border: none;
+        border: 2px solid rgba(255, 255, 255, 0.85);
         outline: none;
         color: #ffffff;
+        overflow: hidden;
+        padding: 0;
       }
       .ai-bot-fab:hover {
         transform: scale(1.08);
@@ -101,6 +112,13 @@
       .ai-bot-fab svg {
         width: 28px;
         height: 28px;
+      }
+      .ai-bot-fab-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        display: block;
       }
 
       .ai-bot-container {
@@ -141,11 +159,21 @@
       .ai-bot-header-info {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
       }
       .ai-bot-header-info svg {
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
+      }
+      .ai-bot-header-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+        background: #ffffff;
+        border: 2px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       }
       .ai-bot-header-title {
         font-size: 16px;
@@ -279,7 +307,7 @@
     const fab = document.createElement('button');
     fab.className = 'ai-bot-fab';
     fab.id = 'ai-bot-fab-btn';
-    fab.innerHTML = getIconSvg(config.widget_icon);
+    fab.innerHTML = getIconOrAvatar(false);
 
     // Chat Container Window
     const container = document.createElement('div');
@@ -287,7 +315,7 @@
     container.innerHTML = `
       <div class="ai-bot-header">
         <div class="ai-bot-header-info">
-          <div id="ai-bot-header-icon">${getIconSvg(config.widget_icon)}</div>
+          <div id="ai-bot-header-icon">${getIconOrAvatar(true)}</div>
           <div>
             <div class="ai-bot-header-title" id="ai-bot-header-title">${config.bot_title}</div>
             <div class="ai-bot-header-status">
@@ -370,13 +398,12 @@
         injectStyles(config.primary_color);
         document.getElementById('ai-bot-header-title').textContent = config.bot_title;
         
-        // Update Icons
-        const svg = getIconSvg(config.widget_icon);
+        // Update Icons or Custom Avatar
         const fabBtn = document.getElementById('ai-bot-fab-btn');
-        if (fabBtn) fabBtn.innerHTML = svg;
+        if (fabBtn) fabBtn.innerHTML = getIconOrAvatar(false);
 
         const headerIcon = document.getElementById('ai-bot-header-icon');
-        if (headerIcon) headerIcon.innerHTML = svg;
+        if (headerIcon) headerIcon.innerHTML = getIconOrAvatar(true);
 
         appendMessage(config.greeting_message, 'bot');
       }
