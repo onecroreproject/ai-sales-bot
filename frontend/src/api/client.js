@@ -94,4 +94,8 @@ export const api = {
   getWidgetConfig: () => request('/api/v1/widget/config'),
   updateWidgetConfig: (data) => request('/api/v1/widget/config', { method: 'PUT', body: JSON.stringify(data) }),
   regenerateSiteKey: () => request('/api/v1/widget/config/regenerate-key', { method: 'POST' }),
+
+  // Conversations & Visitor Chat Logs
+  getConversations: () => request('/api/v1/chat/conversations'),
+  deleteConversation: (sessionId) => request(`/api/v1/chat/conversations/${sessionId}`, { method: 'DELETE' }),
 };

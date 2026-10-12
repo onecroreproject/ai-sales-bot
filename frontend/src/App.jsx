@@ -9,6 +9,7 @@ import WidgetStudioTab from './components/WidgetStudioTab';
 import UsageTab from './components/UsageTab';
 import SettingsTab from './components/SettingsTab';
 import SuperAdminTab from './components/SuperAdminTab';
+import ConversationsTab from './components/ConversationsTab';
 import LoginModal from './components/LoginModal';
 import { 
   CheckCircle2, 
@@ -28,7 +29,8 @@ import {
   Settings as SettingsIcon,
   Bot,
   Layers,
-  Trash2
+  Trash2,
+  MessageSquare
 } from 'lucide-react';
 
 export default function App() {
@@ -209,6 +211,7 @@ export default function App() {
 
     const navFeatures = [
       { id: 'f-overview', title: 'Home / Overview', desc: 'KPIs, stats and agent activity', tab: 'overview', icon: Layers },
+      { id: 'f-conversations', title: 'Live Conversations', desc: 'Inspect real-time visitor chat transcripts and locations', tab: 'conversations', icon: MessageSquare },
       { id: 'f-leads', title: 'Leads Pipeline', desc: 'Manage visitor contacts and CRM leads', tab: 'leads', icon: Users },
       { id: 'f-products', title: 'Product Catalog', desc: 'Manage products, prices and inventory', tab: 'products', icon: Package },
       { id: 'f-knowledge', title: 'Knowledge Base (RAG)', desc: 'Upload documents & FAQs for AI training', tab: 'knowledge', icon: BookOpen },
@@ -1015,7 +1018,8 @@ export default function App() {
 
         {/* Main Workspace Body */}
         <main style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', zIndex: 10 }}>
-          {activeTab === 'overview' && <OverviewTab stats={stats} loading={loading} company={company} />}
+          {activeTab === 'overview' && <OverviewTab stats={stats} loading={loading} company={company} onNavigateTab={(tab) => setActiveTab(tab)} />}
+          {activeTab === 'conversations' && <ConversationsTab />}
           {activeTab === 'leads' && (
             <LeadsTab
               leads={leads}

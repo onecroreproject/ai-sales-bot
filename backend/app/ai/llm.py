@@ -29,10 +29,20 @@ class SalesAssistantResponse(BaseModel):
     lead: LeadInfo | None = Field(default=None, description="Lead details object when lead_ready is true")
 
 
-def _get_async_client(api_key: str | None = None) -> AsyncOpenAI:
-    """Lazy initialization of the AsyncOpenAI client configured with timeouts and retries."""
+def _get_async_client(api_key: str | None = None, provider: str = "openai") -> AsyncOpenAI:
+    """Lazy initialization of the AsyncOpenAI client configured with timeouts, retries, and provider base_url."""
+    provider_lower = (provider or "openai").lower()
+    base_url = None
+    if provider_lower == "deepseek":
+        base_url = "https://api.deepseek.com"
+    elif provider_lower == "groq":
+        base_url = "https://api.groq.com/openai/v1"
+    elif provider_lower == "openrouter":
+        base_url = "https://openrouter.ai/api/v1"
+
     return AsyncOpenAI(
         api_key=api_key or settings.OPENAI_API_KEY,
+        base_url=base_url,
         timeout=settings.OPENAI_TIMEOUT_SECONDS,
         max_retries=settings.OPENAI_MAX_RETRIES,
     )
@@ -43,6 +53,8 @@ async def generate_response_with_usage(
     context: str,
     history: list[dict[str, Any]] | None = None,
     api_key: str | None = None,
+    model: str | None = None,
+    provider: str | None = None,
 ) -> tuple[SalesAssistantResponse, dict[str, int]]:
     """
     Asynchronously generates a structured sales assistant response and returns token usage details.
@@ -53,19 +65,42 @@ async def generate_response_with_usage(
         history=history,
     )
 
-    client = _get_async_client(api_key)
+    target_model = model or settings.OPENAI_MODEL
+    client = _get_async_client(api_key=api_key, provider=provider or "openai")
 
     try:
-        response = await client.beta.chat.completions.parse(
-            model=settings.OPENAI_MODEL,
-            temperature=settings.OPENAI_TEMPERATURE,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            response_format=SalesAssistantResponse,
-        )
-
-        parsed_response = response.choices[0].message.parsed
+        try:
+            response = await client.beta.chat.completions.parse(
+                model=target_model,
+                temperature=settings.OPENAI_TEMPERATURE,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                response_format=SalesAssistantResponse,
+            )
+            parsed_response = response.choices[0].message.parsed
+        except Exception as parse_err:
+            # Fallback to standard chat completion for models that don't support beta parse
+            logger.info(f"Structured parse failed for {target_model}, attempting standard JSON completion: {parse_err}")
+            res = await client.chat.completions.create(
+                model=target_model,
+                temperature=settings.OPENAI_TEMPERATURE,
+                messages=[
+                    {"role": "system", "content": "You are a sales assistant. Respond strictly with valid JSON with keys: 'answer' (string), 'lead_ready' (boolean), and 'lead' (object or null)."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            import json
+            raw_text = res.choices[0].message.content or "{}"
+            data = json.loads(raw_text)
+            parsed_response = SalesAssistantResponse.model_validate(data)
+            usage_dict = {
+                "prompt_tokens": res.usage.prompt_tokens if res.usage else 0,
+                "completion_tokens": res.usage.completion_tokens if res.usage else 0,
+                "total_tokens": res.usage.total_tokens if res.usage else 0,
+            }
+            return parsed_response, usage_dict
 
         if parsed_response is None:
             logger.error("OpenAI model returned null parsed response")

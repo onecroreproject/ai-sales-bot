@@ -18,9 +18,13 @@ async def chat(
     company_id: int,
     session_id: str,
     message: str,
+    origin_domain: str | None = None,
+    ip_address: str | None = None,
+    location: str | None = None,
+    user_agent: str | None = None,
 ):
     # ---------------------------------------------------------
-    # 0. Fetch Company API Key
+    # 0. Fetch Company API Key & AI Settings
     # ---------------------------------------------------------
     
     company = await get_company(db, company_id)
@@ -28,9 +32,11 @@ async def chat(
         raise ValueError("Company not found")
         
     api_key = company.llm_api_key or settings.OPENAI_API_KEY
+    llm_model = getattr(company, "llm_model", None) or settings.OPENAI_MODEL
+    llm_provider = getattr(company, "llm_provider", None) or "openai"
 
     # ---------------------------------------------------------
-    # 1. Find or create chat session
+    # 1. Find or create chat session with location & origin
     # ---------------------------------------------------------
 
     result = await db.execute(
@@ -45,10 +51,24 @@ async def chat(
         session = ChatSession(
             company_id=company_id,
             session_id=session_id,
+            origin_domain=origin_domain,
+            ip_address=ip_address,
+            location=location,
+            user_agent=user_agent,
         )
 
         db.add(session)
         await db.flush()
+    else:
+        # Update metadata if newly available
+        if origin_domain and not session.origin_domain:
+            session.origin_domain = origin_domain
+        if ip_address and not session.ip_address:
+            session.ip_address = ip_address
+        if location and (not session.location or session.location == "Online Visitor"):
+            session.location = location
+        if user_agent and not session.user_agent:
+            session.user_agent = user_agent
 
     # ---------------------------------------------------------
     # 2. Load previous conversation
@@ -108,14 +128,16 @@ async def chat(
         question=message,
         context=context or "No relevant product information was found.",
         history=history,
-        api_key=api_key
+        api_key=api_key,
+        model=llm_model,
+        provider=llm_provider,
     )
 
     await record_token_usage(
         db=db,
         company_id=company_id,
         session_id=session_id,
-        model=settings.OPENAI_MODEL,
+        model=llm_model,
         prompt_tokens=usage.get("prompt_tokens", 0),
         completion_tokens=usage.get("completion_tokens", 0),
     )

@@ -65,6 +65,23 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Static assets
 app.mount("/api/static", StaticFiles(directory="app/static"), name="static")
 
+
+@app.on_event("startup")
+async def startup_db_init():
+    try:
+        from app.database.connection import engine
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS origin_domain VARCHAR(255);"))
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS ip_address VARCHAR(100);"))
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS location VARCHAR(255);"))
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS user_agent VARCHAR(500);"))
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
+            conn.commit()
+            logger.info("Successfully ensured chat_sessions schema is up to date.")
+    except Exception as e:
+        logger.warning(f"DB startup migration note: {e}")
+
 # Include Routers
 app.include_router(products_router)
 app.include_router(companies_router)

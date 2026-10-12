@@ -10,3 +10,4 @@ class DashboardStatsResponse(BaseModel):
     total_requests: int
     total_tokens: int
     total_cost_usd: float
+    recent_activities: list[dict] = []

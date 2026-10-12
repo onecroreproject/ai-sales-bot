@@ -11,7 +11,8 @@ import {
   X,
   Activity,
   Settings,
-  ShieldAlert
+  ShieldAlert,
+  MessageSquare
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, user, company }) {
@@ -24,6 +25,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, company }) {
     { id: 'settings', label: 'Platform Settings', icon: Settings },
   ] : [
     { id: 'overview', label: 'Home', icon: BarChart3 },
+    { id: 'conversations', label: 'Live Conversations', icon: MessageSquare },
     { id: 'leads', label: 'Leads Pipeline', icon: Users },
     { id: 'products', label: 'Product Catalog', icon: Package },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },

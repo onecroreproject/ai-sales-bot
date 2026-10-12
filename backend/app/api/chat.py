@@ -56,3 +56,100 @@ async def chat_api(
         session_id=request.session_id,
         answer=answer.answer,
     )
+
+
+@router.get("/conversations")
+async def get_conversations_api(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve all visitor conversations, questions asked, answers given, and origin location."""
+    from sqlalchemy import select
+    from app.models.chat_session import ChatSession
+    from app.models.chat_message import ChatMessage
+    from app.models.lead import Lead
+
+    # Query all sessions for current company
+    res_sessions = await db.execute(
+        select(ChatSession)
+        .where(ChatSession.company_id == current_user.company_id)
+        .order_by(ChatSession.created_at.desc())
+    )
+    sessions = res_sessions.scalars().all()
+
+    conversations = []
+    for s in sessions:
+        # Load messages
+        res_msgs = await db.execute(
+            select(ChatMessage)
+            .where(ChatMessage.session_id == s.id)
+            .order_by(ChatMessage.created_at.asc())
+        )
+        msgs = res_msgs.scalars().all()
+
+        # Check if lead captured
+        res_lead = await db.execute(
+            select(Lead).where(
+                Lead.company_id == current_user.company_id,
+                Lead.session_id == s.id,
+            )
+        )
+        lead = res_lead.scalar_one_or_none()
+
+        conversations.append({
+            "id": s.id,
+            "session_id": s.session_id,
+            "origin_domain": s.origin_domain or "Direct / Embed Widget",
+            "location": s.location or "Online Visitor",
+            "ip_address": s.ip_address or "Unknown IP",
+            "user_agent": s.user_agent,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "updated_at": (s.updated_at or s.created_at).isoformat() if (s.updated_at or s.created_at) else None,
+            "message_count": len(msgs),
+            "messages": [
+                {
+                    "id": m.id,
+                    "role": m.role,
+                    "content": m.content,
+                    "created_at": m.created_at.isoformat() if m.created_at else None,
+                }
+                for m in msgs
+            ],
+            "lead": {
+                "name": lead.name,
+                "email": lead.email,
+                "phone": lead.phone,
+                "company_name": lead.company_name,
+                "requirement": lead.requirement,
+            } if lead else None,
+        })
+
+    return conversations
+
+
+@router.delete("/conversations/{session_id}")
+async def delete_conversation_api(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a conversation session and all its messages."""
+    from sqlalchemy import select, delete
+    from app.models.chat_session import ChatSession
+    from app.models.chat_message import ChatMessage
+
+    res = await db.execute(
+        select(ChatSession).where(
+            ChatSession.session_id == session_id,
+            ChatSession.company_id == current_user.company_id,
+        )
+    )
+    session = res.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Conversation session not found")
+
+    await db.execute(delete(ChatMessage).where(ChatMessage.session_id == session.id))
+    await db.execute(delete(ChatSession).where(ChatSession.id == session.id))
+    await db.commit()
+
+    return {"message": "Conversation successfully deleted"}

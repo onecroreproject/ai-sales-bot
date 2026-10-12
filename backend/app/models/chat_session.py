@@ -23,6 +23,30 @@ class ChatSession(Base):
         index=True,
     )
 
+    origin_domain: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    ip_address: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    location: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    user_agent: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )

@@ -44,6 +44,72 @@ async def get_dashboard_stats(
     # 5. Usage & token metrics
     usage_summary = await get_company_usage_summary(db, company_id)
 
+    # 6. Live recent agent activities
+    recent_activities = []
+    
+    # 6a. Recent visitor chat queries
+    from app.models.chat_session import ChatSession
+    from app.models.chat_message import ChatMessage
+    
+    res_recent_chats = await db.execute(
+        select(ChatMessage, ChatSession)
+        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+        .where(ChatSession.company_id == company_id, ChatMessage.role == "user")
+        .order_by(ChatMessage.created_at.desc())
+        .limit(4)
+    )
+    for msg, sess in res_recent_chats.all():
+        site_label = sess.origin_domain or "Live Website"
+        loc_label = f" • {sess.location}" if sess.location and sess.location != "Online Visitor" else ""
+        content_preview = (msg.content[:45] + "...") if len(msg.content) > 45 else msg.content
+        recent_activities.append({
+            "id": f"chat-{msg.id}",
+            "type": "chat",
+            "title": f'Visitor Query on {site_label}',
+            "subtitle": f'"{content_preview}"{loc_label}',
+            "time": msg.created_at.strftime("%I:%M %p") if msg.created_at else "Recent",
+            "timestamp": msg.created_at.isoformat() if msg.created_at else None,
+        })
+
+    # 6b. Recent captured leads
+    res_recent_leads = await db.execute(
+        select(Lead)
+        .where(Lead.company_id == company_id)
+        .order_by(Lead.created_at.desc())
+        .limit(3)
+    )
+    for lead in res_recent_leads.scalars().all():
+        recent_activities.append({
+            "id": f"lead-{lead.id}",
+            "type": "lead",
+            "title": f"New Lead Captured: {lead.name or lead.email}",
+            "subtitle": f"Interest: {lead.requirement[:40]}..." if lead.requirement else f"Email: {lead.email}",
+            "time": lead.created_at.strftime("%b %d") if lead.created_at else "Recent",
+            "timestamp": lead.created_at.isoformat() if lead.created_at else None,
+        })
+
+    # Sort combined activities by timestamp descending
+    recent_activities.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+
+    # Fallback to system status items if activity is still empty
+    if not recent_activities:
+        recent_activities = [
+            {
+                "id": "sys-active",
+                "type": "system",
+                "title": "Bot Agent Active",
+                "subtitle": "Published live on website widget & listening for queries",
+                "time": "Real-time active",
+            },
+            {
+                "id": "sys-kb",
+                "type": "knowledge",
+                "title": "Knowledge Base Vector Embeddings",
+                "subtitle": f"{total_knowledge_chunks} knowledge chunks synchronized",
+                "time": "Catalog ready",
+            }
+        ]
+
     return {
         "company_id": company_id,
         "total_leads": total_leads,
@@ -53,6 +119,7 @@ async def get_dashboard_stats(
         "total_requests": usage_summary["total_requests"],
         "total_tokens": usage_summary["total_tokens"],
         "total_cost_usd": usage_summary["total_cost_usd"],
+        "recent_activities": recent_activities[:6],
     }
 
 

@@ -122,8 +122,57 @@ async def public_chat_api(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint for processing messages sent from external embedded chat widgets."""
-    origin = request.headers.get("origin") or request.headers.get("referer")
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
     config, company = await get_public_widget_config(db, site_key=payload.site_key, origin=origin)
+
+    # 1. Parse origin domain
+    origin_domain = None
+    if origin:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(origin)
+            origin_domain = parsed.netloc or parsed.path.split("/")[0]
+        except Exception:
+            origin_domain = str(origin)[:100]
+
+    # 2. Extract visitor IP address
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        visitor_ip = forwarded_for.split(",")[0].strip()
+    elif request.client:
+        visitor_ip = request.client.host
+    else:
+        visitor_ip = "Unknown"
+
+    # 3. Detect visitor country / location
+    country_code = request.headers.get("cf-ipcountry") or request.headers.get("x-country") or request.headers.get("x-geo-country")
+    country_map = {
+        "BH": "Bahrain",
+        "AE": "United Arab Emirates",
+        "SA": "Saudi Arabia",
+        "KW": "Kuwait",
+        "QA": "Qatar",
+        "OM": "Oman",
+        "IN": "India",
+        "US": "United States",
+        "GB": "United Kingdom",
+        "UK": "United Kingdom",
+        "CA": "Canada",
+        "AU": "Australia",
+        "SG": "Singapore",
+        "DE": "Germany",
+        "FR": "France",
+    }
+    if country_code and country_code.upper() in country_map:
+        location = country_map[country_code.upper()]
+    elif country_code:
+        location = country_code.upper()
+    elif origin_domain:
+        location = f"Visitor via {origin_domain}"
+    else:
+        location = "Online Visitor"
+
+    user_agent = request.headers.get("user-agent", "")[:500]
 
     try:
         answer = await chat(
@@ -131,6 +180,10 @@ async def public_chat_api(
             company_id=company.id,
             session_id=payload.session_id,
             message=payload.message,
+            origin_domain=origin_domain,
+            ip_address=visitor_ip,
+            location=location,
+            user_agent=user_agent,
         )
     except AIServiceError as e:
         raise HTTPException(

@@ -29,23 +29,27 @@ export default function UsageTab({ stats, loading }) {
               <Zap size={18} color="var(--accent-indigo)" /> Monthly Message Conversations Quota
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              Pro Plan allocation resets on the 1st of every month.
+              Bring-Your-Own-Key (BYOK) Mode: No artificial platform message caps applied.
             </p>
           </div>
-          <span className="badge badge-indigo" style={{ fontSize: '13px', padding: '6px 12px' }}>
-            {usagePercent}% USED
+          <span className="badge badge-emerald" style={{ fontSize: '13px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }} />
+            ⚡ UNLIMITED BYOK
           </span>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar & Quota Status */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-            <span>{totalRequests.toLocaleString()} Messages Used</span>
-            <span>{monthlyLimit.toLocaleString()} Monthly Limit</span>
+            <span>{totalRequests.toLocaleString()} Messages Processed</span>
+            <span style={{ color: '#10b981' }}>Unlimited (Your API Key)</span>
           </div>
           <div style={{ width: '100%', height: '10px', borderRadius: '5px', background: 'var(--bg-primary)', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
-            <div style={{ width: `${usagePercent}%`, height: '100%', borderRadius: '5px', background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', transition: 'width 0.4s ease' }} />
+            <div style={{ width: '100%', height: '100%', borderRadius: '5px', background: 'linear-gradient(90deg, #10b981, #6366f1)', opacity: 0.85 }} />
           </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Your company uses its own direct AI provider key, allowing unmetered throughput without artificial restrictions.
+          </p>
         </div>
       </div>
 
