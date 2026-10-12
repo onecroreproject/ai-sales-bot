@@ -72,9 +72,12 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
   };
 
   const siteKey = widgetConfig?.site_key || 'sk_live_demo_key';
+  const scriptHost = typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://aichat.dlksoftwaresolutions.co.in';
 
   const embedCode = `<script 
-  src="/api/static/widget.js"
+  src="${scriptHost}/api/static/widget.js"
   data-site-key="${siteKey}" 
   async>
 </script>`;
