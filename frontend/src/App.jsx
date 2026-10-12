@@ -66,6 +66,7 @@ export default function App() {
           try {
             const res = await api.verifyEmail(tokenMatch[1]);
             setVerifyStatus({ type: 'success', msg: res.message || 'Email verified successfully! You can now log in.' });
+            window.location.hash = '';
           } catch (err) {
             setVerifyStatus({ type: 'error', msg: err.message || 'Email verification link invalid or expired.' });
           }
@@ -77,6 +78,14 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Auto-dismiss verifyStatus after 6 seconds
+  useEffect(() => {
+    if (verifyStatus) {
+      const timer = setTimeout(() => setVerifyStatus(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [verifyStatus]);
 
   // Fetch initial profile
   useEffect(() => {
@@ -205,10 +214,17 @@ export default function App() {
             position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
             background: verifyStatus.type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(244, 63, 94, 0.95)',
             color: '#fff', padding: '14px 24px', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-            display: 'flex', alignItems: 'center', gap: '10px', zIndex: 300, fontSize: '14px', fontWeight: 600
+            display: 'flex', alignItems: 'center', gap: '12px', zIndex: 300, fontSize: '14px', fontWeight: 600,
+            animation: 'fadeIn 0.3s ease'
           }}>
             {verifyStatus.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-            {verifyStatus.msg}
+            <span>{verifyStatus.msg}</span>
+            <button 
+              onClick={() => setVerifyStatus(null)}
+              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', marginLeft: '8px', fontSize: '16px', lineHeight: 1 }}
+            >
+              &times;
+            </button>
           </div>
         )}
         <LoginModal

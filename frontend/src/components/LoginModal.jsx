@@ -60,6 +60,21 @@ export default function LoginModal({ onLogin, onRegister }) {
     return () => window.removeEventListener('hashchange', checkHash);
   }, []);
 
+  // Auto-dismiss alerts after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   const validateEmail = (val) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(val.trim());
@@ -130,6 +145,8 @@ export default function LoginModal({ onLogin, onRegister }) {
             setVerificationUrl(regRes.verification_url);
           }
           setMode('login');
+          setEmail('');
+          setPassword('');
           setCompanyName('');
           setCompanyWebsite('');
           setCompanyDescription('');
