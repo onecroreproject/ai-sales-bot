@@ -27,7 +27,8 @@ import {
   Activity,
   Settings as SettingsIcon,
   Bot,
-  Layers
+  Layers,
+  Trash2
 } from 'lucide-react';
 
 export default function App() {
@@ -63,11 +64,19 @@ export default function App() {
       return [];
     }
   });
+  const [clearedNotifIds, setClearedNotifIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cleared_notifications') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   const searchRef = useRef(null);
   const notifRef = useRef(null);
+  const userMenuRef = useRef(null);
 
-  // Close search & notification popups on outside click
+  // Close search, notification & user profile popups on outside click or Escape key
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -76,13 +85,31 @@ export default function App() {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setNotificationsOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
     };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSearchOpen(false);
+        setNotificationsOpen(false);
+        setUserMenuOpen(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // Dynamic notifications feed based on workspace activity
-  const notifications = useMemo(() => {
+  const rawNotifications = useMemo(() => {
     const items = [
       {
         id: 'sys-welcome',
@@ -135,12 +162,32 @@ export default function App() {
     }));
   }, [company, widgetConfig, leads, products, readNotifIds]);
 
+  // Filter out any cleared/dismissed notifications
+  const notifications = useMemo(() => {
+    return rawNotifications.filter(n => !clearedNotifIds.includes(n.id));
+  }, [rawNotifications, clearedNotifIds]);
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleMarkAllRead = () => {
     const allIds = notifications.map(n => n.id);
-    setReadNotifIds(allIds);
-    localStorage.setItem('read_notifications', JSON.stringify(allIds));
+    const next = Array.from(new Set([...readNotifIds, ...allIds]));
+    setReadNotifIds(next);
+    localStorage.setItem('read_notifications', JSON.stringify(next));
+  };
+
+  const handleClearAll = () => {
+    const allIds = rawNotifications.map(n => n.id);
+    const next = Array.from(new Set([...clearedNotifIds, ...allIds]));
+    setClearedNotifIds(next);
+    localStorage.setItem('cleared_notifications', JSON.stringify(next));
+  };
+
+  const handleDismissNotif = (e, notifId) => {
+    e.stopPropagation();
+    const next = Array.from(new Set([...clearedNotifIds, notifId]));
+    setClearedNotifIds(next);
+    localStorage.setItem('cleared_notifications', JSON.stringify(next));
   };
 
   const handleNotificationClick = (notif) => {
@@ -669,7 +716,11 @@ export default function App() {
                   borderColor: notificationsOpen ? '#6366f1' : undefined
                 }}
                 title="Notifications"
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                onClick={() => {
+                  setNotificationsOpen(prev => !prev);
+                  setUserMenuOpen(false);
+                  setSearchOpen(false);
+                }}
               >
                 <Bell size={16} />
                 {unreadCount > 0 && (
@@ -700,8 +751,8 @@ export default function App() {
                   position: 'absolute',
                   right: 0,
                   top: '46px',
-                  width: '360px',
-                  maxHeight: '440px',
+                  width: '380px',
+                  maxHeight: '460px',
                   display: 'flex',
                   flexDirection: 'column',
                   zIndex: 200,
@@ -710,9 +761,9 @@ export default function App() {
                   boxShadow: '0 20px 45px rgba(0, 0, 0, 0.5)',
                   border: '1px solid var(--border-glass)'
                 }}>
-                  {/* Header with Title and "Mark as read" Button */}
+                  {/* Header with Title and "Mark as read" & "Clear all" Buttons */}
                   <div style={{
-                    padding: '14px 16px',
+                    padding: '12px 16px',
                     borderBottom: '1px solid var(--border-glass)',
                     display: 'flex',
                     alignItems: 'center',
@@ -734,35 +785,63 @@ export default function App() {
                         </span>
                       )}
                     </div>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllRead}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#818cf8',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '4px 6px',
-                          borderRadius: '6px'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#a5b4fc'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#818cf8'}
-                      >
-                        <CheckCheck size={14} /> Mark as read
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#818cf8',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 6px',
+                            borderRadius: '6px'
+                          }}
+                          title="Mark all as read"
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#a5b4fc'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = '#818cf8'}
+                        >
+                          <CheckCheck size={14} /> Mark as read
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={handleClearAll}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 6px',
+                            borderRadius: '6px'
+                          }}
+                          title="Clear all notifications"
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                        >
+                          <Trash2 size={13} /> Clear all
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Notifications List Body */}
                   <div style={{ overflowY: 'auto', maxHeight: '360px', padding: '8px' }}>
                     {notifications.length === 0 ? (
-                      <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                        No notifications yet
+                      <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <CheckCircle2 size={32} color="#10b981" style={{ margin: '0 auto 8px', display: 'block', opacity: 0.8 }} />
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>All caught up!</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>No notifications to display.</div>
                       </div>
                     ) : (
                       notifications.map(n => {
@@ -775,6 +854,7 @@ export default function App() {
                             key={n.id}
                             onClick={() => handleNotificationClick(n)}
                             style={{
+                              position: 'relative',
                               display: 'flex',
                               alignItems: 'flex-start',
                               gap: '12px',
@@ -785,8 +865,16 @@ export default function App() {
                               background: !n.read ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
                               marginBottom: '4px'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = !n.read ? 'rgba(99, 102, 241, 0.08)' : 'transparent'}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                              const dismissBtn = e.currentTarget.querySelector('.dismiss-btn');
+                              if (dismissBtn) dismissBtn.style.opacity = '1';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = !n.read ? 'rgba(99, 102, 241, 0.08)' : 'transparent';
+                              const dismissBtn = e.currentTarget.querySelector('.dismiss-btn');
+                              if (dismissBtn) dismissBtn.style.opacity = '0';
+                            }}
                           >
                             <div style={{
                               width: '32px',
@@ -808,9 +896,31 @@ export default function App() {
                                 <span style={{ fontSize: '13px', fontWeight: !n.read ? 700 : 500, color: 'var(--text-primary)' }}>
                                   {n.title}
                                 </span>
-                                {!n.read && (
-                                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#6366f1', flexShrink: 0 }} />
-                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {!n.read && (
+                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#6366f1', flexShrink: 0 }} />
+                                  )}
+                                  <button
+                                    className="dismiss-btn"
+                                    onClick={(e) => handleDismissNotif(e, n.id)}
+                                    title="Dismiss notification"
+                                    style={{
+                                      opacity: 0,
+                                      transition: 'opacity 0.15s, color 0.15s',
+                                      background: 'transparent',
+                                      border: 'none',
+                                      color: 'var(--text-muted)',
+                                      cursor: 'pointer',
+                                      padding: '2px',
+                                      display: 'flex',
+                                      alignItems: 'center'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                </div>
                               </div>
                               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: '1.4' }}>
                                 {n.desc}
@@ -829,9 +939,13 @@ export default function App() {
             </div>
 
             {/* User Profile Avatar with Dropdown Menu */}
-            <div style={{ position: 'relative' }}>
+            <div ref={userMenuRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                onClick={() => {
+                  setUserMenuOpen(prev => !prev);
+                  setNotificationsOpen(false);
+                  setSearchOpen(false);
+                }}
                 style={{
                   width: '36px',
                   height: '36px',
@@ -851,7 +965,7 @@ export default function App() {
                 {user ? user.email.charAt(0).toUpperCase() : 'A'}
               </button>
 
-              {/* Botpress Dropdown Popup Menu */}
+              {/* User Dropdown Popup Menu */}
               {userMenuOpen && (
                 <div className="glass-card" style={{
                   position: 'absolute',
@@ -862,18 +976,35 @@ export default function App() {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '6px',
-                  zIndex: 100
+                  zIndex: 200,
+                  boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45)',
+                  border: '1px solid var(--border-glass)'
                 }}>
                   <div style={{ padding: '8px', borderBottom: '1px solid var(--border-glass)', marginBottom: '4px' }}>
                     <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>{company?.name || 'Workspace User'}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</div>
                   </div>
 
-                  <button onClick={toggleTheme} style={{ background: 'transparent', border: 'none', padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'left' }}>
+                  <button 
+                    onClick={() => {
+                      toggleTheme();
+                    }} 
+                    style={{ background: 'transparent', border: 'none', padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
                     <Sparkles size={14} color="#6366f1" /> Appearance ({theme === 'dark' ? 'Dark' : 'Light'})
                   </button>
 
-                  <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#fb7185', cursor: 'pointer', textAlign: 'left' }}>
+                  <button 
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      handleLogout();
+                    }} 
+                    style={{ background: 'transparent', border: 'none', padding: '8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#fb7185', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
                     <LogOut size={14} /> Sign out
                   </button>
                 </div>
