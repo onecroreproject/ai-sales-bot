@@ -95,7 +95,15 @@ export const api = {
   updateWidgetConfig: (data) => request('/api/v1/widget/config', { method: 'PUT', body: JSON.stringify(data) }),
   regenerateSiteKey: () => request('/api/v1/widget/config/regenerate-key', { method: 'POST' }),
 
-  // Conversations & Visitor Chat Logs
+  // Conversations & Visitor Chat Logs (Phase 1 & 2 Live Takeover)
   getConversations: () => request('/api/v1/chat/conversations'),
   deleteConversation: (sessionId) => request(`/api/v1/chat/conversations/${sessionId}`, { method: 'DELETE' }),
+  sendAgentReply: (sessionId, content) => request(`/api/v1/chat/conversations/${sessionId}/reply`, { method: 'POST', body: JSON.stringify({ content }) }),
+  setConversationMode: (sessionId, mode) => request(`/api/v1/chat/conversations/${sessionId}/mode`, { method: 'POST', body: JSON.stringify({ mode }) }),
+
+  // Phase 3: Auto-Crawl & Unanswered Queries
+  crawlWebsite: (url, productId) => request('/api/v1/knowledge/crawl', { method: 'POST', body: JSON.stringify({ url, product_id: productId ? parseInt(productId) : null }) }),
+  getUnansweredQueries: (status) => request(`/api/v1/knowledge/unanswered-queries${status ? `?status=${status}` : ''}`),
+  resolveUnansweredQuery: (queryId, answer, productId) => request(`/api/v1/knowledge/unanswered-queries/${queryId}/resolve`, { method: 'POST', body: JSON.stringify({ answer, product_id: productId ? parseInt(productId) : null }) }),
+  dismissUnansweredQuery: (queryId) => request(`/api/v1/knowledge/unanswered-queries/${queryId}/dismiss`, { method: 'POST' }),
 };

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
@@ -19,6 +19,10 @@ class Company(Base):
     llm_provider: Mapped[str] = mapped_column(String(50), default="openai", server_default="openai")
     llm_model: Mapped[str] = mapped_column(String(100), default="gpt-4o-mini", server_default="gpt-4o-mini")
     llm_api_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Bot Personality & Custom Rules (Phase 2)
+    bot_persona: Mapped[str] = mapped_column(String(50), default="professional", server_default="professional")
+    custom_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow

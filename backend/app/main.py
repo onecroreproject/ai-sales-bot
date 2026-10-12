@@ -76,9 +76,30 @@ async def startup_db_init():
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS ip_address VARCHAR(100);"))
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS location VARCHAR(255);"))
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS user_agent VARCHAR(500);"))
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS mode VARCHAR(20) DEFAULT 'ai';"))
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50) DEFAULT 'openai';"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_model VARCHAR(100) DEFAULT 'gpt-4o-mini';"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_api_key VARCHAR(500);"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS bot_persona VARCHAR(50) DEFAULT 'professional';"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS custom_instructions TEXT;"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token VARCHAR(255);"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_expires_at TIMESTAMP;"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS unanswered_queries (
+                    id SERIAL PRIMARY KEY,
+                    company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+                    session_id VARCHAR(100),
+                    question TEXT NOT NULL,
+                    ai_response TEXT,
+                    status VARCHAR(20) DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """))
             conn.commit()
-            logger.info("Successfully ensured chat_sessions schema is up to date.")
+            logger.info("Successfully ensured database schemas are up to date.")
     except Exception as e:
         logger.warning(f"DB startup migration note: {e}")
 

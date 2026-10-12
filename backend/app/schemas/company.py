@@ -17,6 +17,8 @@ class CompanyUpdate(BaseModel):
     llm_provider: str | None = None
     llm_model: str | None = None
     llm_api_key: str | None = None
+    bot_persona: str | None = None
+    custom_instructions: str | None = None
 
 
 class CompanyResponse(BaseModel):
@@ -29,6 +31,8 @@ class CompanyResponse(BaseModel):
     llm_provider: str
     llm_model: str
     llm_api_key: str | None = None
+    bot_persona: str = "professional"
+    custom_instructions: str | None = None
 
     model_config = {
         "from_attributes": True

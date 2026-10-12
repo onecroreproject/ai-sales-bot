@@ -233,6 +233,24 @@
         color: #1F2937;
         border-bottom-left-radius: 2px;
       }
+      .ai-bot-msg.agent {
+        align-self: flex-start;
+        background: linear-gradient(135deg, #059669, #10B981);
+        color: #ffffff;
+        border-bottom-left-radius: 2px;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+      }
+      .ai-bot-msg-badge {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+        opacity: 0.95;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
       .ai-bot-msg.user {
         align-self: flex-end;
         background-color: ${themeColor};
@@ -359,27 +377,53 @@
     });
   }
 
+  let syncInterval = null;
+  const renderedMessageFingerprints = new Set();
+
   function toggleWidget() {
     isOpen = !isOpen;
     const container = document.querySelector('.ai-bot-container');
     if (isOpen) {
       container.classList.add('open');
       document.getElementById('ai-bot-input').focus();
+      syncLiveMessages();
+      if (!syncInterval) {
+        syncInterval = setInterval(syncLiveMessages, 3500);
+      }
     } else {
       container.classList.remove('open');
+      if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+      }
     }
   }
 
   function appendMessage(text, role) {
+    if (!text) return;
+    const key = `${role}:${text.trim()}`;
+    renderedMessageFingerprints.add(key);
+
     const messagesEl = document.getElementById('ai-bot-messages');
     const typingEl = document.getElementById('ai-bot-typing');
 
     const msgEl = document.createElement('div');
     msgEl.className = `ai-bot-msg ${role}`;
-    msgEl.textContent = text;
+
+    if (role === 'agent') {
+      msgEl.innerHTML = `<div class="ai-bot-msg-badge">👤 Support Specialist</div>${escapeHtml(text)}`;
+    } else {
+      msgEl.textContent = text;
+    }
 
     messagesEl.insertBefore(msgEl, typingEl);
     messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function escapeHtml(string) {
+    const div = document.createElement('div');
+    div.innerText = string;
+    return div.innerHTML;
   }
 
   function showTyping(show) {
@@ -387,6 +431,38 @@
     typingEl.style.display = show ? 'flex' : 'none';
     const messagesEl = document.getElementById('ai-bot-messages');
     messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  async function syncLiveMessages() {
+    if (!siteKey || !sessionId) return;
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/v1/widget/public/chat/sync/${siteKey}/${sessionId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const subtitleEl = document.querySelector('.ai-bot-header-subtitle');
+        if (subtitleEl) {
+          if (data.mode === 'human') {
+            subtitleEl.textContent = '● Live Agent Active';
+            subtitleEl.style.color = '#34D399';
+          } else {
+            subtitleEl.textContent = '● Online';
+            subtitleEl.style.color = 'rgba(255, 255, 255, 0.8)';
+          }
+        }
+
+        if (Array.isArray(data.messages)) {
+          data.messages.forEach((m) => {
+            const role = m.role === 'agent' ? 'agent' : (m.role === 'user' ? 'user' : 'bot');
+            const key = `${role}:${(m.content || '').trim()}`;
+            if (!renderedMessageFingerprints.has(key)) {
+              appendMessage(m.content, role);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Background sync silent fail
+    }
   }
 
   async function fetchConfig() {
@@ -436,7 +512,10 @@
 
       if (res.ok) {
         const data = await res.json();
-        appendMessage(data.answer, 'bot');
+        if (data.answer) {
+          appendMessage(data.answer, 'bot');
+        }
+        syncLiveMessages();
       } else {
         appendMessage("Sorry, I couldn't process your message right now.", 'bot');
       }

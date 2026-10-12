@@ -43,6 +43,13 @@ class ChatSession(Base):
         nullable=True,
     )
 
+    # Chat Mode: 'ai' or 'human' (Phase 2 Live Takeover)
+    mode: Mapped[str] = mapped_column(
+        String(20),
+        default="ai",
+        server_default="ai",
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )

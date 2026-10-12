@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   MessageSquare, 
   Globe, 
@@ -12,7 +12,10 @@ import {
   CheckCircle2, 
   Users,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Send,
+  UserCheck,
+  Radio
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -21,6 +24,9 @@ export default function ConversationsTab() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchFilter, setSearchFilter] = useState('');
+  const [agentReplyText, setAgentReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const messagesEndRef = useRef(null);
 
   const fetchConversations = async () => {
     setLoading(true);
@@ -57,6 +63,49 @@ export default function ConversationsTab() {
       }
     } catch (err) {
       alert('Failed to delete conversation: ' + err.message);
+    }
+  };
+
+  const handleSendReply = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedSession || !agentReplyText.trim() || sendingReply) return;
+    const content = agentReplyText.trim();
+    setSendingReply(true);
+    try {
+      const res = await api.sendAgentReply(selectedSession.session_id, content);
+      const newMsg = {
+        id: res.id || Date.now(),
+        role: 'agent',
+        content,
+        created_at: new Date().toISOString()
+      };
+      const updatedMessages = [...(selectedSession.messages || []), newMsg];
+      const updatedSession = { ...selectedSession, mode: 'human', messages: updatedMessages };
+      setSelectedSession(updatedSession);
+      setConversations(conversations.map(c => c.session_id === selectedSession.session_id ? updatedSession : c));
+      setAgentReplyText('');
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } catch (err) {
+      alert('Failed to send live agent reply: ' + err.message);
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  const handleToggleMode = async () => {
+    if (!selectedSession) return;
+    const nextMode = selectedSession.mode === 'human' ? 'ai' : 'human';
+    try {
+      await api.setConversationMode(selectedSession.session_id, nextMode);
+      const updatedSession = { ...selectedSession, mode: nextMode };
+      setSelectedSession(updatedSession);
+      setConversations(conversations.map(c => c.session_id === selectedSession.session_id ? updatedSession : c));
+    } catch (err) {
+      alert('Failed to switch conversation mode: ' + err.message);
     }
   };
 
@@ -239,25 +288,64 @@ export default function ConversationsTab() {
                   </div>
                 </div>
 
-                {selectedSession.lead && (
-                  <div style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    textAlign: 'right'
-                  }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                      <Users size={12} /> Converted Prospect
-                    </div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {selectedSession.lead.name || selectedSession.lead.email}
-                    </div>
-                    {selectedSession.lead.phone && (
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{selectedSession.lead.phone}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {/* Mode Indicator & Live Takeover Switch */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {selectedSession.mode === 'human' ? (
+                      <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <UserCheck size={13} /> Live Agent Mode
+                      </span>
+                    ) : (
+                      <span style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Bot size={13} /> AI Bot Mode
+                      </span>
                     )}
+
+                    <button
+                      onClick={handleToggleMode}
+                      className={selectedSession.mode === 'human' ? 'btn-secondary' : 'btn-primary'}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: selectedSession.mode === 'human' ? 'var(--bg-card)' : 'linear-gradient(135deg, #059669, #10b981)'
+                      }}
+                      title={selectedSession.mode === 'human' ? 'Switch back to automatic AI bot responses' : 'Take over this conversation as human agent'}
+                    >
+                      {selectedSession.mode === 'human' ? (
+                        <>
+                          <Bot size={13} /> Resume AI Mode
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck size={13} /> Take Over Chat
+                        </>
+                      )}
+                    </button>
                   </div>
-                )}
+
+                  {selectedSession.lead && (
+                    <div style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      textAlign: 'right'
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                        <Users size={12} /> Converted Prospect
+                      </div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {selectedSession.lead.name || selectedSession.lead.email}
+                      </div>
+                      {selectedSession.lead.phone && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{selectedSession.lead.phone}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Messages Chat Stream */}
@@ -277,6 +365,7 @@ export default function ConversationsTab() {
                 ) : (
                   selectedSession.messages.map((m, idx) => {
                     const isUser = m.role === 'user';
+                    const isAgent = m.role === 'agent';
                     return (
                       <div
                         key={idx}
@@ -297,6 +386,14 @@ export default function ConversationsTab() {
                                 <User size={10} />
                               </div>
                             </>
+                          ) : isAgent ? (
+                            <>
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <UserCheck size={10} />
+                              </div>
+                              <span style={{ fontWeight: 600, color: '#10b981' }}>Live Agent (You)</span>
+                              <span>{m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                            </>
                           ) : (
                             <>
                               <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -311,9 +408,13 @@ export default function ConversationsTab() {
                         <div style={{
                           padding: '12px 16px',
                           borderRadius: isUser ? '16px 16px 2px 16px' : '16px 16px 16px 2px',
-                          background: isUser ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--bg-card)',
-                          color: isUser ? '#ffffff' : 'var(--text-primary)',
-                          border: isUser ? 'none' : '1px solid var(--border-glass)',
+                          background: isUser 
+                            ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
+                            : isAgent 
+                            ? 'linear-gradient(135deg, #059669, #10b981)' 
+                            : 'var(--bg-card)',
+                          color: (isUser || isAgent) ? '#ffffff' : 'var(--text-primary)',
+                          border: (isUser || isAgent) ? 'none' : '1px solid var(--border-glass)',
                           fontSize: '13.5px',
                           lineHeight: '1.5',
                           boxShadow: 'var(--shadow-sm)',
@@ -325,7 +426,52 @@ export default function ConversationsTab() {
                     );
                   })
                 )}
+                <div ref={messagesEndRef} />
               </div>
+
+              {/* Live Human Takeover Reply Input Box */}
+              <form 
+                onSubmit={handleSendReply} 
+                style={{ 
+                  padding: '14px 20px', 
+                  borderTop: '1px solid var(--border-glass)', 
+                  background: 'var(--bg-card)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px' 
+                }}
+              >
+                <input
+                  type="text"
+                  value={agentReplyText}
+                  onChange={(e) => setAgentReplyText(e.target.value)}
+                  placeholder="Type a live agent message to this visitor (Enter to send)..."
+                  style={{ 
+                    flex: 1, 
+                    padding: '10px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border-glass)', 
+                    background: 'var(--bg-secondary)', 
+                    color: 'var(--text-primary)', 
+                    fontSize: '13.5px' 
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={sendingReply || !agentReplyText.trim()}
+                  className="btn-primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    padding: '10px 18px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Send size={14} /> {sendingReply ? 'Sending...' : 'Send Live Reply'}
+                </button>
+              </form>
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '10px', color: 'var(--text-muted)' }}>

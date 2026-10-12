@@ -122,3 +122,143 @@ async def delete_knowledge_api(
     except SQLAlchemyError:
         await db.rollback()
         raise HTTPException(status_code=500, detail="Unable to delete knowledge entry")
+
+
+# =====================================================================
+# PHASE 3: WEBSITE URL AUTO-CRAWLER & MISSED QUERIES
+# =====================================================================
+
+from pydantic import BaseModel, Field
+from app.services.crawler_service import crawl_and_index_url
+from app.models.unanswered_query import UnansweredQuery
+from app.models.product_knowledge import ProductKnowledge
+from app.ai.embeddings import create_embedding
+from app.services.company_service import get_company
+from sqlalchemy import select
+
+
+class CrawlUrlRequest(BaseModel):
+    url: str = Field(..., min_length=4)
+    product_id: int | None = None
+
+
+class ResolveQueryRequest(BaseModel):
+    answer: str = Field(..., min_length=2)
+    product_id: int | None = None
+
+
+@router.post("/crawl")
+async def crawl_website_url_api(
+    payload: CrawlUrlRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Auto-crawl website URL, strip HTML, split into semantic chunks, and vector embed."""
+    company = await get_company(db, current_user.company_id)
+    api_key = company.llm_api_key if company else None
+
+    try:
+        result = await crawl_and_index_url(
+            db=db,
+            company_id=current_user.company_id,
+            url=payload.url,
+            product_id=payload.product_id,
+            api_key=api_key,
+        )
+        return result
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Web crawling error: {str(e)}")
+
+
+@router.get("/unanswered-queries")
+async def list_unanswered_queries_api(
+    status: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List unanswered visitor questions that the AI couldn't find knowledge for."""
+    query = select(UnansweredQuery).where(UnansweredQuery.company_id == current_user.company_id)
+    if status:
+        query = query.where(UnansweredQuery.status == status)
+    else:
+        # Default show pending first
+        query = query.order_by(UnansweredQuery.status.asc(), UnansweredQuery.created_at.desc())
+
+    res = await db.execute(query)
+    queries = res.scalars().all()
+
+    return [
+        {
+            "id": q.id,
+            "session_id": q.session_id,
+            "question": q.question,
+            "ai_response": q.ai_response,
+            "status": q.status,
+            "created_at": q.created_at.isoformat() if q.created_at else None,
+        }
+        for q in queries
+    ]
+
+
+@router.post("/unanswered-queries/{query_id}/resolve")
+async def resolve_unanswered_query_api(
+    query_id: int,
+    payload: ResolveQueryRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Turn an unanswered visitor question into a verified Knowledge Base vector entry."""
+    res = await db.execute(
+        select(UnansweredQuery).where(
+            UnansweredQuery.id == query_id,
+            UnansweredQuery.company_id == current_user.company_id,
+        )
+    )
+    unanswered = res.scalar_one_or_none()
+    if not unanswered:
+        raise HTTPException(status_code=404, detail="Unanswered query not found")
+
+    company = await get_company(db, current_user.company_id)
+    api_key = company.llm_api_key if company else None
+
+    # Format into QA knowledge chunk
+    kb_content = f"Frequently Asked Question:\nQuestion: {unanswered.question}\nAnswer: {payload.answer.strip()}"
+    embedding = await create_embedding(kb_content, api_key=api_key)
+
+    new_knowledge = ProductKnowledge(
+        company_id=current_user.company_id,
+        product_id=payload.product_id,
+        content=kb_content,
+        embedding=embedding,
+    )
+    db.add(new_knowledge)
+    unanswered.status = "resolved"
+    await db.commit()
+
+    return {"message": "Successfully resolved and added to Knowledge Base", "knowledge_id": new_knowledge.id}
+
+
+@router.post("/unanswered-queries/{query_id}/dismiss")
+async def dismiss_unanswered_query_api(
+    query_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Dismiss an unanswered query that is not relevant."""
+    res = await db.execute(
+        select(UnansweredQuery).where(
+            UnansweredQuery.id == query_id,
+            UnansweredQuery.company_id == current_user.company_id,
+        )
+    )
+    unanswered = res.scalar_one_or_none()
+    if not unanswered:
+        raise HTTPException(status_code=404, detail="Unanswered query not found")
+
+    unanswered.status = "dismissed"
+    await db.commit()
+    return {"message": "Query dismissed"}

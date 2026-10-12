@@ -1047,6 +1047,7 @@ export default function App() {
               onCreateKnowledge={handleCreateKnowledge}
               onUpdateKnowledge={handleUpdateKnowledge}
               onDeleteKnowledge={handleDeleteKnowledge}
+              onRefresh={() => company && refreshData(company.id)}
               loading={loading}
             />
           )}

@@ -44,6 +44,8 @@ export default function SettingsTab({ company, onUpdateCompany }) {
   const [llmModel, setLlmModel] = useState(company?.llm_model || 'gpt-4o-mini');
   const [customModelInput, setCustomModelInput] = useState('');
   const [llmApiKey, setLlmApiKey] = useState(company?.llm_api_key || '');
+  const [botPersona, setBotPersona] = useState(company?.bot_persona || 'professional');
+  const [customInstructions, setCustomInstructions] = useState(company?.custom_instructions || '');
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -65,7 +67,9 @@ export default function SettingsTab({ company, onUpdateCompany }) {
           description,
           llm_provider: llmProvider,
           llm_model: finalModel || 'gpt-4o-mini',
-          llm_api_key: llmApiKey ? llmApiKey.trim() : null
+          llm_api_key: llmApiKey ? llmApiKey.trim() : null,
+          bot_persona: botPersona,
+          custom_instructions: customInstructions ? customInstructions.trim() : null
         });
         if (onUpdateCompany) {
           onUpdateCompany(updated);
@@ -85,7 +89,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
       <div>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>Workspace Settings</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-          Configure your company workspace profile, AI assistant parameters, and security policies.
+          Configure your company workspace profile, AI assistant parameters, personality, and rules.
         </p>
       </div>
 
@@ -178,6 +182,44 @@ export default function SettingsTab({ company, onUpdateCompany }) {
             />
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
               We will use this key exclusively for your company's chatbot traffic. You have full control over your AI costs with zero artificial platform limits.
+            </p>
+          </div>
+
+          {/* Phase 2: Bot Personality & Custom Rules */}
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Settings size={18} color="var(--accent-indigo)" /> Bot Personality & Custom Rules (Phase 2)
+          </h3>
+
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              Sales Assistant Persona
+            </label>
+            <select
+              value={botPersona}
+              onChange={(e) => setBotPersona(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+            >
+              <option value="professional">Professional & Executive (Polished, courteous, corporate clarity)</option>
+              <option value="friendly">Warm & Friendly (Enthusiastic, welcoming, upbeat energy)</option>
+              <option value="sales_closer">High-Converting Sales Closer (Proactive, creates urgency, drives conversions)</option>
+              <option value="support">Customer Support Specialist (Patient, reassuring, troubleshooting-focused)</option>
+              <option value="technical">Technical & Fact-Driven (Precise, architectural, no fluff)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              Custom Company Business Rules & Guidelines
+            </label>
+            <textarea
+              rows={4}
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
+              placeholder="e.g. Always mention our 14-day risk-free trial on inquiries. For Bahrain visitors, mention our office in Seef District. Never reveal internal supplier names."
+              style={{ width: '100%', resize: 'vertical' }}
+            />
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+              These custom rules are injected directly into the AI system prompt and strictly enforced across all customer chats.
             </p>
           </div>
 

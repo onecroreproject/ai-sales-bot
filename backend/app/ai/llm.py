@@ -55,6 +55,8 @@ async def generate_response_with_usage(
     api_key: str | None = None,
     model: str | None = None,
     provider: str | None = None,
+    persona: str = "professional",
+    custom_instructions: str | None = None,
 ) -> tuple[SalesAssistantResponse, dict[str, int]]:
     """
     Asynchronously generates a structured sales assistant response and returns token usage details.
@@ -63,6 +65,8 @@ async def generate_response_with_usage(
         question=question,
         context=context,
         history=history,
+        persona=persona,
+        custom_instructions=custom_instructions,
     )
 
     target_model = model or settings.OPENAI_MODEL

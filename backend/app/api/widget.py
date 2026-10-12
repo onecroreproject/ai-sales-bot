@@ -195,3 +195,54 @@ async def public_chat_api(
         session_id=payload.session_id,
         answer=answer.answer,
     )
+
+
+@router.get(
+    "/public/chat/sync/{site_key}/{session_id}",
+)
+@limiter.limit("60/minute")
+async def public_chat_sync_api(
+    request: Request,
+    response: Response,
+    site_key: str,
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public endpoint allowing the embedded chat widget to poll for live human agent responses."""
+    from sqlalchemy import select
+    from app.models.chat_session import ChatSession
+    from app.models.chat_message import ChatMessage
+
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
+    config, company = await get_public_widget_config(db, site_key=site_key, origin=origin)
+
+    res = await db.execute(
+        select(ChatSession).where(
+            ChatSession.session_id == session_id,
+            ChatSession.company_id == company.id,
+        )
+    )
+    session = res.scalar_one_or_none()
+    if not session:
+        return {"session_id": session_id, "mode": "ai", "messages": []}
+
+    res_msgs = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.session_id == session.id)
+        .order_by(ChatMessage.created_at.asc())
+    )
+    msgs = res_msgs.scalars().all()
+
+    return {
+        "session_id": session_id,
+        "mode": getattr(session, "mode", "ai") or "ai",
+        "messages": [
+            {
+                "id": m.id,
+                "role": m.role,
+                "content": m.content,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in msgs
+        ],
+    }

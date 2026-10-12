@@ -99,6 +99,7 @@ async def get_conversations_api(
         conversations.append({
             "id": s.id,
             "session_id": s.session_id,
+            "mode": getattr(s, "mode", "ai") or "ai",
             "origin_domain": s.origin_domain or "Direct / Embed Widget",
             "location": s.location or "Online Visitor",
             "ip_address": s.ip_address or "Unknown IP",
@@ -125,6 +126,88 @@ async def get_conversations_api(
         })
 
     return conversations
+
+
+from pydantic import BaseModel, Field
+from datetime import datetime
+
+class AgentReplyRequest(BaseModel):
+    content: str = Field(..., min_length=1)
+
+class ConversationModeRequest(BaseModel):
+    mode: str = Field(..., pattern="^(ai|human)$")
+
+
+@router.post("/conversations/{session_id}/reply")
+async def send_agent_reply_api(
+    session_id: str,
+    payload: AgentReplyRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Company support agent takes over conversation and replies directly to visitor."""
+    from sqlalchemy import select
+    from app.models.chat_session import ChatSession
+    from app.models.chat_message import ChatMessage
+
+    res = await db.execute(
+        select(ChatSession).where(
+            ChatSession.session_id == session_id,
+            ChatSession.company_id == current_user.company_id,
+        )
+    )
+    session = res.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Conversation session not found")
+
+    # Create message with role 'agent'
+    new_msg = ChatMessage(
+        session_id=session.id,
+        role="agent",
+        content=payload.content.strip(),
+    )
+    db.add(new_msg)
+    session.mode = "human"
+    session.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(new_msg)
+
+    return {
+        "id": new_msg.id,
+        "session_id": session_id,
+        "role": new_msg.role,
+        "content": new_msg.content,
+        "mode": session.mode,
+        "created_at": new_msg.created_at.isoformat() if new_msg.created_at else None,
+    }
+
+
+@router.post("/conversations/{session_id}/mode")
+async def set_conversation_mode_api(
+    session_id: str,
+    payload: ConversationModeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Toggle between 'ai' and 'human' takeover mode for a conversation."""
+    from sqlalchemy import select
+    from app.models.chat_session import ChatSession
+
+    res = await db.execute(
+        select(ChatSession).where(
+            ChatSession.session_id == session_id,
+            ChatSession.company_id == current_user.company_id,
+        )
+    )
+    session = res.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Conversation session not found")
+
+    session.mode = payload.mode
+    session.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"session_id": session_id, "mode": session.mode}
 
 
 @router.delete("/conversations/{session_id}")

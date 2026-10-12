@@ -1,7 +1,18 @@
+PERSONA_GUIDELINES = {
+    "professional": "Tone: Polished, corporate, courteous, and authoritative. Present solutions with clarity and executive precision.",
+    "friendly": "Tone: Warm, welcoming, enthusiastic, and cheerful. Use encouraging conversational language with positive energy.",
+    "sales_closer": "Tone: Highly proactive, persuasive, and closing-oriented. Highlight compelling value propositions, overcome hesitations, create urgency, and guide the prospect directly toward booking, scheduling a demo, or buying.",
+    "support": "Tone: Patient, helpful, detail-oriented, and reassuring. Focus on troubleshooting, answering specific product queries, and ensuring customer satisfaction.",
+    "technical": "Tone: Fact-driven, technically precise, and concise. Provide exact technical specifics and architectural details without promotional fluff.",
+}
+
+
 def build_sales_prompt(
     question: str,
     context: str,
     history: list[dict] | None = None,
+    persona: str = "professional",
+    custom_instructions: str | None = None,
 ) -> str:
 
     history_text = ""
@@ -12,18 +23,30 @@ def build_sales_prompt(
             for message in history
         )
 
+    persona_text = PERSONA_GUIDELINES.get(persona, PERSONA_GUIDELINES["professional"])
+    custom_rules_section = ""
+    if custom_instructions and custom_instructions.strip():
+        custom_rules_section = f"""
+CUSTOM COMPANY BUSINESS RULES & INSTRUCTIONS:
+{custom_instructions.strip()}
+- You MUST adhere strictly to the above custom company rules and guidelines at all times.
+"""
+
     return f"""
 You are an AI sales assistant.
 
 Your job is to help customers understand products and
 move toward a purchase when appropriate.
 
+BOT PERSONALITY & STYLE:
+{persona_text}
+{custom_rules_section}
 RULES:
 
 - Be helpful and professional.
 - Use the product information as your factual source.
 - Do not invent features, prices, or capabilities.
-- If the information is insufficient, say so.
+- If the information is insufficient, say so clearly and politely.
 - Keep responses concise.
 - Use previous conversation context when relevant.
 
