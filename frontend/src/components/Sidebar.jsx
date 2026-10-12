@@ -18,7 +18,7 @@ import {
 export default function Sidebar({ activeTab, setActiveTab, user, company }) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const isSuperAdmin = user?.email === 'superadmin@platform.com' || company?.id === 1;
+  const isSuperAdmin = user?.email === 'superadmin@platform.com';
 
   const navItems = isSuperAdmin ? [
     { id: 'superadmin', label: 'Command Center', icon: ShieldAlert },

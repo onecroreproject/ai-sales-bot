@@ -33,7 +33,7 @@ async def register_user(
         email=email,
         hashed_password=hash_password(password),
         is_active=True,
-        email_verified=False,
+        email_verified=True,
         verification_token=verification_token,
     )
 

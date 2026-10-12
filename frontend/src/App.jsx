@@ -103,7 +103,7 @@ export default function App() {
       const c = await api.getMyCompany();
       setCompany(c);
       
-      const isSuperAdmin = u.email === 'superadmin@platform.com' || c.id === 1;
+      const isSuperAdmin = u.email === 'superadmin@platform.com';
       if (isSuperAdmin && activeTab === 'overview') {
         setActiveTab('superadmin');
       }

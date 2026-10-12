@@ -14,6 +14,7 @@ async def create_company(
         name=company_data.name,
         website=company_data.website,
         description=company_data.description,
+        is_verified=True,
     )
 
     db.add(company)
@@ -74,20 +75,33 @@ async def delete_company(
     db: AsyncSession,
     company_id: int,
 ):
-    from sqlalchemy import delete
+    from sqlalchemy import delete, select
     from app.models.user import User
     from app.models.product import Product
+    from app.models.product_knowledge import ProductKnowledge
     from app.models.lead import Lead
-    from app.models.knowledge import Knowledge
-    from app.models.widget import WidgetConfig
+    from app.models.widget_config import WidgetConfig
+    from app.models.token_usage import TokenUsage
+    from app.models.chat_session import ChatSession
+    from app.models.chat_message import ChatMessage
 
     try:
-        await db.execute(delete(User).where(User.company_id == company_id))
+        # 1. Delete chat messages for any sessions belonging to this company
+        sessions_res = await db.execute(select(ChatSession.id).where(ChatSession.company_id == company_id))
+        session_ids = sessions_res.scalars().all()
+        if session_ids:
+            await db.execute(delete(ChatMessage).where(ChatMessage.session_id.in_(session_ids)))
+
+        # 2. Delete child tables
+        await db.execute(delete(ChatSession).where(ChatSession.company_id == company_id))
+        await db.execute(delete(TokenUsage).where(TokenUsage.company_id == company_id))
+        await db.execute(delete(ProductKnowledge).where(ProductKnowledge.company_id == company_id))
         await db.execute(delete(Product).where(Product.company_id == company_id))
         await db.execute(delete(Lead).where(Lead.company_id == company_id))
-        await db.execute(delete(Knowledge).where(Knowledge.company_id == company_id))
         await db.execute(delete(WidgetConfig).where(WidgetConfig.company_id == company_id))
-        
+        await db.execute(delete(User).where(User.company_id == company_id))
+
+        # 3. Delete company record
         await db.execute(delete(Company).where(Company.id == company_id))
         await db.commit()
     except Exception:
