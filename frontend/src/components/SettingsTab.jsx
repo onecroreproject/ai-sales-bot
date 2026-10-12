@@ -19,7 +19,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
     setSaving(true);
     try {
       if (company?.id) {
-        await api.updateCompany(company.id, { 
+        const updated = await api.updateCompany(company.id, { 
           name, 
           website, 
           description,
@@ -27,6 +27,9 @@ export default function SettingsTab({ company, onUpdateCompany }) {
           llm_model: llmModel,
           llm_api_key: llmApiKey ? llmApiKey : null
         });
+        if (onUpdateCompany) {
+          onUpdateCompany(updated);
+        }
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
       }
