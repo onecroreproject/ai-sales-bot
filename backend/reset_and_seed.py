@@ -13,6 +13,7 @@ from app.models.token_usage import TokenUsage
 from app.models.chat_session import ChatSession
 from app.models.chat_message import ChatMessage
 
+from sqlalchemy import text
 from app.core.security import hash_password
 from app.core.config import settings
 
@@ -21,7 +22,14 @@ async def reset_and_seed_db():
     print("[RESET DB] Recreating all database tables from metadata...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    print("[RESET DB] Database tables recreated successfully.")
+    
+    # Stamp alembic_version to latest revision so container restarts don't conflict
+    with engine.connect() as conn:
+        conn.execute(text("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"))
+        conn.execute(text("DELETE FROM alembic_version"))
+        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('6a81e3f89d1b')"))
+        conn.commit()
+    print("[RESET DB] Database tables recreated & Alembic version stamped successfully.")
 
     async with AsyncSessionLocal() as db:
         # 1. Seed Verified Demo Company
