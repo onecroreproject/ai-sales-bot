@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
@@ -79,6 +79,7 @@ async def regenerate_site_key_api(
 @limiter.limit("30/minute")
 async def get_public_widget_config_api(
     request: Request,
+    response: Response,
     site_key: str,
     db: AsyncSession = Depends(get_db),
 ):
@@ -105,6 +106,7 @@ async def get_public_widget_config_api(
 @limiter.limit("10/minute")
 async def public_chat_api(
     request: Request,
+    response: Response,
     payload: PublicChatRequest,
     db: AsyncSession = Depends(get_db),
 ):
