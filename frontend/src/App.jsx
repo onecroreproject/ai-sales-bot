@@ -342,6 +342,7 @@ export default function App() {
   const handleUpdateWidgetConfig = async (data) => {
     const updated = await api.updateWidgetConfig(data);
     setWidgetConfig(updated);
+    return updated;
   };
   const handleRegenerateKey = async () => {
     const updated = await api.regenerateSiteKey();

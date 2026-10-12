@@ -26,6 +26,7 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
   const [allowedOrigins, setAllowedOrigins] = useState('');
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const defaultIcons = [
     { id: 'Bot', label: 'Robot AI', icon: Bot },
@@ -47,23 +48,57 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
       setPrimaryColor(widgetConfig.primary_color || '#6366f1');
       setWidgetIcon(widgetConfig.widget_icon || 'Bot');
       setCustomIconUrl(widgetConfig.custom_icon_url || '');
-      setAllowedOrigins((widgetConfig.allowed_origins || []).join('\n'));
+
+      // Load allowed domains cleanly: handles comma-separated string or array
+      const raw = widgetConfig.allowed_domains || widgetConfig.allowed_origins;
+      if (Array.isArray(raw)) {
+        setAllowedOrigins(raw.join('\n'));
+      } else if (typeof raw === 'string') {
+        const list = raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+        setAllowedOrigins(list.join('\n'));
+      } else {
+        setAllowedOrigins('*');
+      }
     }
   }, [widgetConfig]);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setSaveSuccess(false);
     try {
-      const origins = allowedOrigins.split('\n').map((s) => s.trim()).filter(Boolean);
+      // Parse & normalize domains: clean full URLs into hostnames (e.g. "https://1cnews.1crorebahrainjobs.com/" -> "1cnews.1crorebahrainjobs.com")
+      const list = allowedOrigins
+        .split('\n')
+        .map(s => {
+          let val = s.trim();
+          if (!val) return '';
+          if (val === '*') return '*';
+          try {
+            if (val.startsWith('http://') || val.startsWith('https://')) {
+              return new URL(val).hostname;
+            }
+          } catch(e) {}
+          return val.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim();
+        })
+        .filter(Boolean);
+
+      const domainStr = list.length > 0 ? list.join(',') : '*';
+
       await onUpdateConfig({
         bot_title: botTitle,
         greeting_message: greetingMessage,
         primary_color: primaryColor,
         widget_icon: widgetIcon,
         custom_icon_url: customIconUrl.trim() || null,
-        allowed_origins: origins,
+        allowed_domains: domainStr,
+        allowed_origins: list,
       });
+
+      // Keep normalized domains list in textarea
+      setAllowedOrigins(list.length > 0 ? list.join('\n') : '*');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err) {
       console.error('Failed to update widget config:', err);
     } finally {
@@ -71,13 +106,11 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
     }
   };
 
-  const siteKey = widgetConfig?.site_key || 'sk_live_demo_key';
-  const scriptHost = typeof window !== 'undefined' && window.location.origin
-    ? window.location.origin
-    : 'https://aichat.dlksoftwaresolutions.co.in';
+  const siteKey = widgetConfig?.site_key || 'sk_live_demo1234567890abcdef';
+  const serverHost = 'https://aichat.dlksoftwaresolutions.co.in';
 
   const embedCode = `<script 
-  src="${scriptHost}/api/static/widget.js"
+  src="${serverHost}/api/static/widget.js"
   data-site-key="${siteKey}" 
   async>
 </script>`;
@@ -222,29 +255,39 @@ export default function WidgetStudioTab({ widgetConfig, onUpdateConfig, onRegene
                     const isAll = cleanDomain === '*';
                     return (
                       <span key={idx} style={{ 
-                        background: isAll ? '#fbbf24' : '#10b981', 
-                        color: isAll ? '#78350f' : '#ffffff', 
+                        background: isAll ? 'rgba(251, 191, 36, 0.2)' : 'rgba(16, 185, 129, 0.2)', 
+                        color: isAll ? '#fbbf24' : '#34d399', 
+                        border: `1px solid ${isAll ? '#fbbf24' : '#10b981'}`,
                         padding: '4px 10px', 
                         borderRadius: '12px', 
                         fontSize: '11px', 
                         fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '6px'
                       }}>
-                        {isAll ? '⚠️ ANY WEBSITE (Not Secure)' : `✅ ${cleanDomain}`}
+                        {isAll ? '🌐 Allowed on ALL Websites (*)' : `✅ Authorized: ${cleanDomain}`}
                       </span>
                     )
                   })
                 ) : (
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No websites added yet.</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    Allowed on all websites (*) by default.
+                  </span>
                 )}
               </div>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={saving} style={{ marginTop: '16px', alignSelf: 'flex-start' }}>
-              {saving ? 'Saving Changes...' : 'Save Settings'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '16px' }}>
+              <button type="submit" className="btn-primary" disabled={saving}>
+                {saving ? 'Saving Changes...' : saveSuccess ? '✓ Settings Saved!' : 'Save Settings'}
+              </button>
+              {saveSuccess && (
+                <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ✓ Settings & Website Whitelist Saved! Embed snippet updated.
+                </span>
+              )}
+            </div>
           </form>
 
           {/* Embed Script Snippet */}

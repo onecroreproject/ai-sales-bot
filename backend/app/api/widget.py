@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user
 from app.database.connection import get_db
 from app.models.user import User
+from app.models.widget_config import WidgetConfig
 from app.schemas.widget import (
     PublicChatRequest,
     PublicChatResponse,
@@ -31,6 +32,13 @@ router = APIRouter(
 # ADMIN ENDPOINTS (JWT Protected)
 # =====================================================================
 
+def _format_config_response(config: WidgetConfig) -> WidgetConfigResponse:
+    origins = [d.strip() for d in (config.allowed_domains or "*").split(",") if d.strip()]
+    resp = WidgetConfigResponse.model_validate(config)
+    resp.allowed_origins = origins
+    return resp
+
+
 @router.get(
     "/config",
     response_model=WidgetConfigResponse,
@@ -40,7 +48,8 @@ async def get_widget_config_api(
     current_user: User = Depends(get_current_user),
 ):
     """Retrieve widget configuration and public site key for current company."""
-    return await get_or_create_widget_config(db, current_user.company_id)
+    config = await get_or_create_widget_config(db, current_user.company_id)
+    return _format_config_response(config)
 
 
 @router.put(
@@ -53,7 +62,8 @@ async def update_widget_config_api(
     current_user: User = Depends(get_current_user),
 ):
     """Update branding, bot title, greeting message, widget icon, custom icon URL, or domain whitelist."""
-    return await update_widget_config(db, current_user.company_id, request)
+    config = await update_widget_config(db, current_user.company_id, request)
+    return _format_config_response(config)
 
 
 @router.post(
@@ -65,7 +75,8 @@ async def regenerate_site_key_api(
     current_user: User = Depends(get_current_user),
 ):
     """Regenerate public site key for company widget."""
-    return await regenerate_site_key(db, current_user.company_id)
+    config = await regenerate_site_key(db, current_user.company_id)
+    return _format_config_response(config)
 
 
 # =====================================================================

@@ -31,6 +31,15 @@ async def update_widget_config(
     config = await get_or_create_widget_config(db, company_id)
 
     update_dict = data.model_dump(exclude_unset=True)
+
+    if "allowed_origins" in update_dict:
+        origins = update_dict.pop("allowed_origins")
+        if origins is not None and "allowed_domains" not in update_dict:
+            if isinstance(origins, list):
+                update_dict["allowed_domains"] = ",".join([s.strip() for s in origins if s.strip()]) if origins else "*"
+            elif isinstance(origins, str):
+                update_dict["allowed_domains"] = origins.strip()
+
     for field, value in update_dict.items():
         setattr(config, field, value)
 

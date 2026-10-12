@@ -9,6 +9,7 @@ class WidgetConfigUpdate(BaseModel):
     widget_icon: str | None = Field(default=None, max_length=50)
     custom_icon_url: str | None = Field(default=None, description="Custom company logo image URL")
     allowed_domains: str | None = Field(default=None, description="Comma-separated domains or *")
+    allowed_origins: list[str] | str | None = Field(default=None, description="List or comma-separated allowed origins")
     is_enabled: bool | None = None
 
 
@@ -21,7 +22,8 @@ class WidgetConfigResponse(BaseModel):
     primary_color: str
     widget_icon: str = "Bot"
     custom_icon_url: str | None = None
-    allowed_domains: str | None
+    allowed_domains: str | None = "*"
+    allowed_origins: list[str] = []
     is_enabled: bool
     created_at: datetime
     updated_at: datetime
