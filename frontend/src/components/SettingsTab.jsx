@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Building2, Key, Save, Check } from 'lucide-react';
+import { Settings, Building2, Key, Save, Check, Eye, EyeOff, Sparkles, Shield, Cpu } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function SettingsTab({ company, onUpdateCompany }) {
@@ -53,6 +53,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
   const [llmModel, setLlmModel] = useState(company?.llm_model || 'gpt-4o-mini');
   const [customModelInput, setCustomModelInput] = useState('');
   const [llmApiKey, setLlmApiKey] = useState(company?.llm_api_key || '');
+  const [showApiKey, setShowApiKey] = useState(false);
   const [botPersona, setBotPersona] = useState(company?.bot_persona || 'professional');
   const [customInstructions, setCustomInstructions] = useState(company?.custom_instructions || '');
   const [saved, setSaved] = useState(false);
@@ -94,160 +95,250 @@ export default function SettingsTab({ company, onUpdateCompany }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '860px' }}>
       <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>Workspace Settings</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          Workspace Settings
+        </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-          Configure your company workspace profile, AI assistant parameters, personality, and rules.
+          Manage your business profile, connect your AI provider (BYOK), and tailor assistant personality.
         </p>
       </div>
 
-      <div style={{ maxWidth: '850px', width: '100%' }}>
-        {/* Main Settings Form */}
-        <form onSubmit={handleSubmit} className="glass-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Building2 size={18} color="var(--accent-indigo)" /> Company Profile Settings
-          </h3>
-
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Company Name *</label>
-            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
-          </div>
-
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Company Website</label>
-            <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://example.com" style={{ width: '100%' }} />
-          </div>
-
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Business Description / Focus</label>
-            <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your products or services..." style={{ width: '100%', resize: 'vertical' }} />
-          </div>
-
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Key size={18} color="var(--accent-indigo)" /> AI Engine (BYOK)
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>AI Provider</label>
-              <select 
-                value={llmProvider} 
-                onChange={(e) => handleProviderChange(e.target.value)} 
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-              >
-                <option value="openai">OpenAI</option>
-                <option value="nvidia">NVIDIA NIM (integrate.api.nvidia.com)</option>
-                <option value="anthropic">Anthropic (Claude)</option>
-                <option value="google">Google (Gemini)</option>
-                <option value="groq">Groq (Ultra-Fast Llama 3)</option>
-                <option value="deepseek">DeepSeek (V3 / R1)</option>
-                <option value="custom">Custom / OpenRouter</option>
-              </select>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Section 1: Business Profile */}
+        <div className="clean-card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--brand-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={17} />
             </div>
             <div>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>AI Model</label>
-              <select
-                value={llmModel}
-                onChange={(e) => setLlmModel(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-              >
-                {(PROVIDER_MODELS[llmProvider] || PROVIDER_MODELS.openai).map(m => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
-                ))}
-              </select>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Company Profile</h2>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Identifies your workspace across widgets and CRM records</span>
             </div>
           </div>
 
-          {llmModel === 'custom' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Custom Model Name / ID *</label>
-              <input
-                type="text"
-                required
-                value={customModelInput}
-                onChange={(e) => setCustomModelInput(e.target.value)}
-                placeholder={llmProvider === 'nvidia' ? "e.g. meta/llama-3.3-70b-instruct or deepseek-ai/deepseek-r1" : "e.g. meta-llama/llama-3.3-70b-instruct or mistral-large-latest"}
-                style={{ width: '100%' }}
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Company Name *
+              </label>
+              <input 
+                type="text" 
+                required 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                style={{ width: '100%' }} 
               />
             </div>
-          )}
 
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              Your {llmProvider === 'nvidia' ? 'NVIDIA NIM' : llmProvider.toUpperCase()} API Key
-            </label>
-            <input 
-              type="password" 
-              value={llmApiKey} 
-              onChange={(e) => setLlmApiKey(e.target.value)} 
-              placeholder={
-                llmProvider === 'openai' ? 'sk-...' :
-                llmProvider === 'nvidia' ? 'nvapi-...' :
-                llmProvider === 'anthropic' ? 'sk-ant-api03-...' :
-                llmProvider === 'google' ? 'AIzaSy...' :
-                llmProvider === 'groq' ? 'gsk_...' :
-                llmProvider === 'deepseek' ? 'sk-...' : 'API Key...'
-              } 
-              style={{ width: '100%' }} 
-            />
-            {llmProvider === 'nvidia' ? (
-              <p style={{ fontSize: '12px', color: '#10b981', marginTop: '6px' }}>
-                ⚡ Connected to NVIDIA NIM API (<code>https://integrate.api.nvidia.com/v1</code>). Enter your NVIDIA Personal/Org API Key (starts with <code>nvapi-</code>). Reasoning models like <code>openai/gpt-oss-20b</code> and DeepSeek-R1 are fully supported.
-              </p>
-            ) : (
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                We will use this key exclusively for your company's chatbot traffic. You have full control over your AI costs with zero artificial platform limits.
-              </p>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Company Website URL
+              </label>
+              <input 
+                type="url" 
+                value={website} 
+                onChange={(e) => setWebsite(e.target.value)} 
+                placeholder="https://yourcompany.com" 
+                style={{ width: '100%' }} 
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Business Description & Industry
+              </label>
+              <textarea 
+                rows={3} 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+                placeholder="Describe your primary services, ideal clients, and key market solutions..." 
+                style={{ width: '100%', resize: 'vertical' }} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: AI Engine (BYOK) */}
+        <div className="clean-card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--status-emerald-bg)', color: 'var(--status-emerald-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Key size={17} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>AI Engine & Bring-Your-Own-Key (BYOK)</h2>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Choose any model: OpenAI, NVIDIA NIM, Claude, DeepSeek, or Gemini</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  AI Provider
+                </label>
+                <select 
+                  value={llmProvider} 
+                  onChange={(e) => handleProviderChange(e.target.value)} 
+                  style={{ width: '100%' }}
+                >
+                  <option value="openai">OpenAI (GPT-4o, GPT-4o-mini)</option>
+                  <option value="nvidia">NVIDIA NIM (integrate.api.nvidia.com)</option>
+                  <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                  <option value="google">Google (Gemini 1.5 / 2.0)</option>
+                  <option value="groq">Groq (Ultra-Fast Llama 3.3)</option>
+                  <option value="deepseek">DeepSeek (V3 / R1 Reasoning)</option>
+                  <option value="custom">Custom Provider</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Model Selection
+                </label>
+                <select
+                  value={llmModel}
+                  onChange={(e) => setLlmModel(e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  {(PROVIDER_MODELS[llmProvider] || PROVIDER_MODELS.openai).map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {llmModel === 'custom' && (
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Custom Model Name / ID *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={customModelInput}
+                  onChange={(e) => setCustomModelInput(e.target.value)}
+                  placeholder={llmProvider === 'nvidia' ? "meta/llama-3.3-70b-instruct or deepseek-ai/deepseek-r1" : "e.g. mistral-large-latest"}
+                  style={{ width: '100%' }}
+                />
+              </div>
             )}
+
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Your {llmProvider === 'nvidia' ? 'NVIDIA NIM' : llmProvider.toUpperCase()} API Key
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showApiKey ? 'text' : 'password'} 
+                  value={llmApiKey} 
+                  onChange={(e) => setLlmApiKey(e.target.value)} 
+                  placeholder={
+                    llmProvider === 'openai' ? 'sk-proj-...' :
+                    llmProvider === 'nvidia' ? 'nvapi-...' :
+                    llmProvider === 'anthropic' ? 'sk-ant-api03-...' :
+                    llmProvider === 'google' ? 'AIzaSy...' :
+                    llmProvider === 'groq' ? 'gsk_...' :
+                    llmProvider === 'deepseek' ? 'sk-...' : 'API Key...'
+                  } 
+                  style={{ width: '100%', paddingRight: '40px' }} 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title={showApiKey ? 'Hide API Key' : 'Show API Key'}
+                >
+                  {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {llmProvider === 'nvidia' ? (
+                <div className="badge badge-emerald" style={{ marginTop: '8px', fontSize: '12px', padding: '6px 12px' }}>
+                  ⚡ Connected to NVIDIA NIM API (<code>https://integrate.api.nvidia.com/v1</code>). Reasoning tokens and high-throughput inference enabled.
+                </div>
+              ) : (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  Your secret key is stored with military-grade encryption and used strictly for your company's live chats.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Persona & Business Guardrails */}
+        <div className="clean-card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--status-purple-bg)', color: 'var(--status-purple-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={17} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Sales Assistant Persona & Instructions</h2>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Fine-tune conversational tone and strategic guidance</span>
+            </div>
           </div>
 
-          {/* Phase 2: Bot Personality & Custom Rules */}
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Settings size={18} color="var(--accent-indigo)" /> Bot Personality & Custom Rules (Phase 2)
-          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Conversation Persona
+              </label>
+              <select
+                value={botPersona}
+                onChange={(e) => setBotPersona(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <option value="professional">Professional & Consultative (Polished, courteous, corporate clarity)</option>
+                <option value="friendly">Warm & Welcoming (Enthusiastic, approachable, upbeat)</option>
+                <option value="sales_closer">Proactive Sales Closer (Creates urgency, pitches value, captures contacts)</option>
+                <option value="support">Customer Support Specialist (Patient, analytical, troubleshooting focus)</option>
+                <option value="technical">Technical Specialist (Architecture, specifications, accurate facts)</option>
+              </select>
+            </div>
 
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              Sales Assistant Persona
-            </label>
-            <select
-              value={botPersona}
-              onChange={(e) => setBotPersona(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-            >
-              <option value="professional">Professional & Executive (Polished, courteous, corporate clarity)</option>
-              <option value="friendly">Warm & Friendly (Enthusiastic, welcoming, upbeat energy)</option>
-              <option value="sales_closer">High-Converting Sales Closer (Proactive, creates urgency, drives conversions)</option>
-              <option value="support">Customer Support Specialist (Patient, reassuring, troubleshooting-focused)</option>
-              <option value="technical">Technical & Fact-Driven (Precise, architectural, no fluff)</option>
-            </select>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Special Business Guidelines & Rules
+              </label>
+              <textarea
+                rows={4}
+                value={customInstructions}
+                onChange={(e) => setCustomInstructions(e.target.value)}
+                placeholder="e.g. Always highlight our 14-day free trial on pricing questions. Direct enterprise queries to enterprise@company.com. Do not give custom quotes above 50 seats."
+                style={{ width: '100%', resize: 'vertical' }}
+              />
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                These directives are prioritized in the assistant's instruction prompt for every conversation.
+              </p>
+            </div>
           </div>
+        </div>
 
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              Custom Company Business Rules & Guidelines
-            </label>
-            <textarea
-              rows={4}
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="e.g. Always mention our 14-day risk-free trial on inquiries. For Bahrain visitors, mention our office in Seef District. Never reveal internal supplier names."
-              style={{ width: '100%', resize: 'vertical' }}
-            />
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-              These custom rules are injected directly into the AI system prompt and strictly enforced across all customer chats.
-            </p>
-          </div>
-
-          <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button type="submit" className="btn-primary" disabled={saving}>
-              {saved ? <Check size={16} /> : <Save size={16} />}
-              {saving ? 'Saving...' : saved ? 'Saved Successfully!' : 'Save Settings'}
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Save Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', paddingTop: '4px' }}>
+          <button type="submit" className="btn-primary" disabled={saving}>
+            {saved ? <Check size={16} /> : <Save size={16} />}
+            {saving ? 'Saving Changes...' : saved ? 'Saved Successfully!' : 'Save Workspace Settings'}
+          </button>
+          {saved && (
+            <span style={{ fontSize: '13px', color: 'var(--status-emerald-text)', fontWeight: 600 }}>
+              ✓ Settings updated in real-time
+            </span>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

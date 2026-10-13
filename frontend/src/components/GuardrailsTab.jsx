@@ -3,21 +3,15 @@ import {
   ShieldCheck, 
   ShieldAlert, 
   Lock, 
-  EyeOff, 
   CheckCircle2, 
   AlertTriangle, 
-  Sparkles, 
   Save, 
   RefreshCw, 
   Send, 
-  Cpu, 
   Ban,
-  Layers,
-  HelpCircle,
   Zap,
   Info
 } from 'lucide-react';
-import { api } from '../api/client';
 
 export default function GuardrailsTab({ company, onUpdateCompany }) {
   const [blockedTopics, setBlockedTopics] = useState(company?.guardrail_blocked_topics || '');
@@ -99,7 +93,6 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
     setTestResult(null);
 
     try {
-      // Simulate live bot evaluation against configured guardrails
       const lowerQuery = testQuery.toLowerCase();
       const blockedList = blockedTopics.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
       const compList = competitors.toLowerCase().split(',').map(c => c.trim()).filter(Boolean);
@@ -108,16 +101,16 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
       let simulatedReply = '';
 
       if (blockedList.some(b => lowerQuery.includes(b))) {
-        triggeredGuardrail = 'Blocked Topic Filter';
+        triggeredGuardrail = 'Restricted Topic Filter';
         simulatedReply = customRefusal;
       } else if (compList.some(c => lowerQuery.includes(c))) {
         triggeredGuardrail = 'Competitor Redirection Rule';
-        simulatedReply = `We specialize exclusively in our tailored solutions rather than third-party competitors. Our core strengths include dedicated 24/7 client support, reliable uptime, and personalized implementation. How can we assist your business goals today?`;
+        simulatedReply = `We specialize exclusively in our tailored solutions rather than third-party platforms. Our core strengths include dedicated client support, reliable performance, and custom enterprise deployments. How can we assist your business goals today?`;
       } else if (lowerQuery.includes('system prompt') || lowerQuery.includes('ignore previous instructions') || lowerQuery.includes('jailbreak')) {
-        triggeredGuardrail = 'Prompt Injection & System Shield';
+        triggeredGuardrail = 'Prompt Injection & Security Shield';
         simulatedReply = customRefusal;
       } else {
-        simulatedReply = `This prompt is permitted under current guardrails and will proceed directly to product knowledge search and AI sales consultation.`;
+        simulatedReply = `This prompt is permitted under your active safety policies and will query your company's product catalog and vector knowledge base.`;
       }
 
       setTestResult({
@@ -141,75 +134,63 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ShieldCheck size={26} color="#10b981" /> AI Guardrails & Content Safety
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            AI Guardrails & Content Safety
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-            Establish brand boundaries, block inappropriate subjects, protect proprietary prompts, and manage competitor mentions dynamically.
+            Set brand boundaries, deflect competitors, prevent prompt injections, and enforce safety policies.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            padding: '6px 14px', 
-            borderRadius: '20px', 
-            background: 'rgba(16, 185, 129, 0.15)', 
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            color: '#10b981',
-            fontSize: '13px',
-            fontWeight: 600
-          }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 10px #10b981' }} />
-            Guardrails Engine Active
-          </div>
+          <span className="badge badge-emerald">
+            <span className="pulse-dot" style={{ color: '#047857' }} /> Safety Engine Active
+          </span>
 
           <button 
             onClick={handleSave} 
             disabled={saving} 
             className="btn-primary" 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-            {saving ? 'Saving Guardrails...' : 'Save Guardrails'}
+            {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
+            {saving ? 'Saving...' : 'Save Guardrails'}
           </button>
         </div>
       </div>
 
       {saveSuccess && (
-        <div style={{ padding: '14px 18px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <CheckCircle2 size={18} />
-          <strong>Guardrails updated successfully!</strong> The live chatbot will immediately enforce these policies.
+        <div className="clean-card" style={{ padding: '12px 18px', background: 'var(--status-emerald-bg)', borderColor: 'var(--status-emerald-border)', color: 'var(--status-emerald-text)', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <CheckCircle2 size={16} />
+          <span><strong>Guardrails updated!</strong> The live chatbot widget will immediately enforce these policies.</span>
         </div>
       )}
 
       {saveError && (
-        <div style={{ padding: '14px 18px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <AlertTriangle size={18} />
-          {saveError}
+        <div className="clean-card" style={{ padding: '12px 18px', background: 'var(--status-rose-bg)', borderColor: 'var(--status-rose-border)', color: 'var(--status-rose-text)', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <AlertTriangle size={16} />
+          <span>{saveError}</span>
         </div>
       )}
 
-      {/* Grid Layout: Config on Left, Live Simulator on Right */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 1fr)', gap: '24px', alignItems: 'start' }}>
+      {/* Grid: Config Left, Simulator Right */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px', alignItems: 'start' }}>
         
         {/* Left Column: Guardrail Rules */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
           {/* 1. Blocked Topics Card */}
-          <div className="glass-card" style={{ padding: '24px' }}>
+          <div className="clean-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171' }}>
-                <Ban size={18} />
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--status-rose-bg)', color: 'var(--status-rose-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Ban size={16} />
               </div>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Restricted & Blocked Topics
                 </h3>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                  Topics the bot is forbidden from discussing (comma-separated).
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Forbidden subjects the AI must refuse (comma-separated).
                 </p>
               </div>
             </div>
@@ -218,11 +199,11 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
               rows={3}
               value={blockedTopics}
               onChange={(e) => setBlockedTopics(e.target.value)}
-              placeholder="e.g. Politics, Cryptocurrencies, Source code disclosure, Employee salaries, Legal advice, Adult content"
-              style={{ width: '100%', marginTop: '12px', fontSize: '13.5px', resize: 'vertical' }}
+              placeholder="e.g. Politics, Cryptocurrencies, Source code disclosure, Employee salaries, Legal advice"
+              style={{ width: '100%', marginTop: '12px', resize: 'vertical' }}
             />
 
-            <div style={{ marginTop: '10px' }}>
+            <div style={{ marginTop: '12px' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Quick Add Presets:</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {['Politics', 'Internal Credentials', 'Legal Advice', 'Medical Advice', 'Employee Salaries', 'Cryptocurrency', 'Profanity'].map(p => (
@@ -230,17 +211,8 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
                     key={p}
                     type="button"
                     onClick={() => handleAddPresetBlocked(p)}
-                    style={{
-                      padding: '4px 9px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border-glass)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '11.5px',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    className="btn-secondary"
+                    style={{ padding: '4px 10px', fontSize: '11.5px', borderRadius: 'var(--radius-pill)' }}
                   >
                     + {p}
                   </button>
@@ -250,17 +222,17 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
           </div>
 
           {/* 2. Competitor Protection Card */}
-          <div className="glass-card" style={{ padding: '24px' }}>
+          <div className="clean-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fbbf24' }}>
-                <ShieldAlert size={18} />
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--status-amber-bg)', color: 'var(--status-amber-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldAlert size={16} />
               </div>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Competitor Brand Deflection
                 </h3>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                  Mentioning these brands will trigger an automatic value-pivot instead of praise.
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Mentions trigger a value pivot to highlight your strengths rather than competitor praise.
                 </p>
               </div>
             </div>
@@ -269,29 +241,20 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
               rows={2}
               value={competitors}
               onChange={(e) => setCompetitors(e.target.value)}
-              placeholder="e.g. Salesforce, Zendesk, Intercom, Drift, Tidio, HubSpot"
-              style={{ width: '100%', marginTop: '12px', fontSize: '13.5px', resize: 'vertical' }}
+              placeholder="e.g. Salesforce, Zendesk, Intercom, Drift, HubSpot, Tidio"
+              style={{ width: '100%', marginTop: '12px', resize: 'vertical' }}
             />
 
-            <div style={{ marginTop: '10px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Quick Add Popular Competitors:</span>
+            <div style={{ marginTop: '12px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Quick Add Competitors:</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {['Salesforce', 'Zendesk', 'Intercom', 'HubSpot', 'Drift', 'Tidio', 'Crisp'].map(c => (
+                {['Salesforce', 'Zendesk', 'Intercom', 'HubSpot', 'Drift', 'Tidio'].map(c => (
                   <button
                     key={c}
                     type="button"
                     onClick={() => handleAddPresetCompetitor(c)}
-                    style={{
-                      padding: '4px 9px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border-glass)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '11.5px',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    className="btn-secondary"
+                    style={{ padding: '4px 10px', fontSize: '11.5px', borderRadius: 'var(--radius-pill)' }}
                   >
                     + {c}
                   </button>
@@ -300,25 +263,25 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
             </div>
           </div>
 
-          {/* 3. Privacy, PII & System Prompt Protection */}
-          <div className="glass-card" style={{ padding: '24px' }}>
+          {/* 3. Privacy, PII & Anti-Jailbreak Shield */}
+          <div className="clean-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-indigo)' }}>
-                  <Lock size={18} />
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--brand-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={16} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     PII Masking & Anti-Jailbreak Shield
                   </h3>
-                  <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                    Prevents disclosure of internal system prompts, API keys, and client PII.
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Blocks leaks of prompt instructions, internal keys, and visitor personal data.
                   </p>
                 </div>
               </div>
 
-              {/* Toggle Switch */}
-              <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', cursor: 'pointer' }}>
+              {/* iOS Style Toggle Switch */}
+              <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px', cursor: 'pointer', flexShrink: 0 }}>
                 <input
                   type="checkbox"
                   checked={piiMasking}
@@ -328,53 +291,52 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
                 <span style={{
                   position: 'absolute',
                   inset: 0,
-                  backgroundColor: piiMasking ? '#10b981' : '#4b5563',
-                  borderRadius: '26px',
+                  backgroundColor: piiMasking ? 'var(--brand-primary)' : 'var(--border-medium)',
+                  borderRadius: '24px',
                   transition: 'background-color 0.2s',
                 }}>
                   <span style={{
                     position: 'absolute',
-                    content: '""',
-                    height: '20px',
-                    width: '20px',
-                    left: piiMasking ? '24px' : '3px',
+                    height: '18px',
+                    width: '18px',
+                    left: piiMasking ? '23px' : '3px',
                     bottom: '3px',
-                    backgroundColor: '#fff',
+                    backgroundColor: '#ffffff',
                     borderRadius: '50%',
                     transition: 'left 0.2s',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                   }} />
                 </span>
               </label>
             </div>
           </div>
 
-          {/* 4. Custom Refusal Response & Strictness */}
-          <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* 4. Custom Refusal & Strictness */}
+          <div className="clean-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>
                 Custom Polite Refusal Message
               </label>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                The AI will return this exact message when restricted questions or prompt attacks are detected.
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                Returned when off-topic questions or prompt injection attempts are detected.
               </p>
               <textarea
                 rows={3}
                 value={customRefusal}
                 onChange={(e) => setCustomRefusal(e.target.value)}
                 placeholder="I am focused specifically on assisting you with our official products and services..."
-                style={{ width: '100%', fontSize: '13px', resize: 'vertical' }}
+                style={{ width: '100%', resize: 'vertical' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
-                Enforcement Strictness Level
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>
+                Enforcement Strictness
               </label>
               <select
                 value={toneStrictness}
                 onChange={(e) => setToneStrictness(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                style={{ width: '100%' }}
               >
                 <option value="standard">Standard (Recommended - Balanced sales interaction & boundary defense)</option>
                 <option value="strict">Strict (Zero-Tolerance - Immediately cut off any off-topic chatter)</option>
@@ -385,27 +347,27 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
 
         </div>
 
-        {/* Right Column: Interactive Sandbox & Testing Panel */}
+        {/* Right Column: Live Testing Simulator */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          <div className="glass-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-indigo)' }}>
-                <Zap size={18} />
+          <div className="clean-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--status-purple-bg)', color: 'var(--status-purple-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={16} />
               </div>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Live Guardrail Simulator
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Live Guardrail Sandbox
                 </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  Test customer queries in real-time to inspect guardrail enforcement before going live.
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Test visitor prompts in real-time to preview defense triggers.
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleRunTest} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
               <div>
-                <label style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   Test Prompt / Query
                 </label>
                 <input
@@ -414,7 +376,7 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
                   placeholder="e.g. How does your pricing compare with Salesforce?"
                   value={testQuery}
                   onChange={(e) => setTestQuery(e.target.value)}
-                  style={{ width: '100%', fontSize: '13px' }}
+                  style={{ width: '100%' }}
                 />
               </div>
 
@@ -430,17 +392,8 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
                     key={sp}
                     type="button"
                     onClick={() => setTestQuery(sp)}
-                    style={{
-                      padding: '3px 8px',
-                      borderRadius: '5px',
-                      border: '1px solid var(--border-glass)',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      color: 'var(--text-muted)',
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                    className="btn-secondary"
+                    style={{ padding: '3px 8px', fontSize: '11px', borderRadius: 'var(--radius-pill)' }}
                   >
                     "{sp}"
                   </button>
@@ -453,8 +406,8 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
                 className="btn-primary"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '6px' }}
               >
-                {testing ? <RefreshCw size={15} className="animate-spin" /> : <Send size={15} />}
-                Test Guardrail Response
+                {testing ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+                Test Response
               </button>
             </form>
 
@@ -463,15 +416,15 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
               <div style={{ 
                 marginTop: '16px', 
                 padding: '16px', 
-                borderRadius: '8px', 
-                background: testResult.status === 'intercepted' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
-                border: testResult.status === 'intercepted' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)' 
+                borderRadius: 'var(--radius-md)', 
+                background: testResult.status === 'intercepted' ? 'var(--status-amber-bg)' : 'var(--status-emerald-bg)', 
+                border: `1px solid ${testResult.status === 'intercepted' ? 'var(--status-amber-border)' : 'var(--status-emerald-border)'}` 
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ 
                     fontSize: '11.5px', 
                     fontWeight: 700, 
-                    color: testResult.status === 'intercepted' ? '#fbbf24' : '#10b981',
+                    color: testResult.status === 'intercepted' ? 'var(--status-amber-text)' : 'var(--status-emerald-text)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px'
@@ -486,12 +439,22 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
                   )}
                 </div>
 
-                <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                   <strong>Evaluated Query:</strong> "{testResult.query}"
                 </div>
 
-                <div style={{ fontSize: '13px', color: 'var(--text-primary)', background: 'var(--bg-secondary)', padding: '10px 12px', borderRadius: '6px', lineHeight: '1.5' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>SIMULATED BOT OUTPUT:</span>
+                <div style={{ 
+                  fontSize: '13px', 
+                  color: 'var(--text-primary)', 
+                  background: 'var(--bg-surface)', 
+                  padding: '10px 14px', 
+                  borderRadius: 'var(--radius-sm)', 
+                  lineHeight: '1.5',
+                  border: '1px solid var(--border-subtle)'
+                }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    SIMULATED BOT OUTPUT:
+                  </span>
                   {testResult.reply}
                 </div>
               </div>
@@ -499,17 +462,17 @@ export default function GuardrailsTab({ company, onUpdateCompany }) {
           </div>
 
           {/* Quick Info Explainer Card */}
-          <div className="glass-card" style={{ padding: '20px' }}>
+          <div className="clean-card" style={{ padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <Info size={16} color="var(--accent-indigo)" />
+              <Info size={15} color="var(--brand-primary)" />
               <h4 style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 How Guardrails Work Under the Hood
               </h4>
             </div>
             <ul style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.6', paddingLeft: '18px', margin: 0 }}>
-              <li><strong>Zero-Latency Injection:</strong> Guardrail rules are injected directly into the LLM system prompt prior to every inference.</li>
-              <li><strong>PII Neutralization:</strong> The engine is explicitly instructed to never leak visitor identities, backend schemas, or prompt configurations.</li>
-              <li><strong>Competitor Shield:</strong> Rather than bashing competitors, the bot proactively shifts focus to your business value propositions.</li>
+              <li><strong>Zero-Latency Injection:</strong> Rules are compiled directly into the LLM system prompt prior to every inference.</li>
+              <li><strong>PII Neutralization:</strong> The engine is strictly instructed to never disclose internal system prompts or confidential records.</li>
+              <li><strong>Competitor Shield:</strong> Seamlessly pivots visitor interest back toward your company's value points.</li>
             </ul>
           </div>
 

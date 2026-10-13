@@ -14,7 +14,8 @@ import {
   Sparkles,
   ArrowRight,
   UploadCloud,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -98,60 +99,46 @@ export default function KnowledgeTab({
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (resolvingQueryId) {
-        // Extract answer part if user filled it
-        let answerText = content;
-        const answerPrefix = 'Answer: ';
-        if (content.includes(answerPrefix)) {
-          answerText = content.split(answerPrefix).slice(1).join(answerPrefix).trim();
-        }
-        await api.resolveUnansweredQuery(resolvingQueryId, answerText || content, productId);
-        setUnansweredQueries(unansweredQueries.map(q => q.id === resolvingQueryId ? { ...q, status: 'resolved' } : q));
-        if (onRefresh) onRefresh();
-      } else if (editingKnowledge) {
-        const payload = {
-          company_id: companyId,
-          product_id: productId ? parseInt(productId) : null,
+      if (editingKnowledge) {
+        await onUpdateKnowledge(editingKnowledge.id, {
           content,
-        };
-        await onUpdateKnowledge(editingKnowledge.id, payload);
+          product_id: productId || null,
+        });
       } else {
-        const payload = {
+        await onCreateKnowledge({
           company_id: companyId,
-          product_id: productId ? parseInt(productId) : null,
           content,
-        };
-        await onCreateKnowledge(payload);
+          product_id: productId || null,
+        });
+        if (resolvingQueryId) {
+          try {
+            await api.resolveUnansweredQuery(resolvingQueryId);
+            fetchUnanswered();
+          } catch (resErr) {
+            console.error('Failed to mark query resolved:', resErr);
+          }
+        }
       }
       setIsModalOpen(false);
-      setResolvingQueryId(null);
     } catch (err) {
-      alert('Failed to save knowledge item: ' + err.message);
-    }
-  };
-
-  const handleDismissQuery = async (queryId) => {
-    try {
-      await api.dismissUnansweredQuery(queryId);
-      setUnansweredQueries(unansweredQueries.filter(q => q.id !== queryId));
-    } catch (err) {
-      alert('Failed to dismiss query: ' + err.message);
+      alert('Error saving knowledge chunk: ' + err.message);
     }
   };
 
   const handleStartCrawl = async (e) => {
     e.preventDefault();
-    if (!crawlUrl.trim() || crawling) return;
+    if (!crawlUrl.trim()) return;
+
     setCrawling(true);
     setCrawlError(null);
     setCrawlResult(null);
 
     try {
-      const res = await api.crawlWebsite(crawlUrl.trim(), crawlProductId);
+      const res = await api.crawlUrl(crawlUrl.trim(), crawlProductId || null);
       setCrawlResult(res);
       if (onRefresh) onRefresh();
     } catch (err) {
-      setCrawlError(err.message || 'Auto-crawl failed. Please ensure the URL is publicly reachable.');
+      setCrawlError(err.message || 'Crawler failed to process this webpage.');
     } finally {
       setCrawling(false);
     }
@@ -159,43 +146,49 @@ export default function KnowledgeTab({
 
   const handleUploadDocument = async (e) => {
     e.preventDefault();
-    if (!selectedFile || uploading) return;
+    if (!selectedFile) return;
+
     setUploading(true);
     setUploadError(null);
     setUploadResult(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      if (uploadProductId) {
-        formData.append('product_id', uploadProductId);
-      }
-      const res = await api.uploadDocument(formData);
+      const res = await api.uploadKnowledgeDocument(selectedFile, uploadProductId || null);
       setUploadResult(res);
       if (onRefresh) onRefresh();
     } catch (err) {
-      setUploadError(err.message || 'Document processing failed. Please check file format.');
+      setUploadError(err.message || 'File upload failed or format not supported.');
     } finally {
       setUploading(false);
     }
   };
 
-  const pendingUnansweredCount = unansweredQueries.filter(q => q.status === 'pending').length;
+  const handleDismissQuery = async (id) => {
+    try {
+      await api.dismissUnansweredQuery(id);
+      fetchUnanswered();
+    } catch (err) {
+      alert('Failed to dismiss query: ' + err.message);
+    }
+  };
+
+  const pendingUnansweredCount = unansweredQueries.filter(q => q.status !== 'resolved').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+      {/* Page Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <BookOpen size={24} color="var(--accent-indigo)" /> Knowledge Base & RAG Index
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            Knowledge Base (RAG)
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-            Train your AI sales bot with multi-format files (PDF, Word, Excel, CSV), website crawling, and knowledge learning.
+            Train your AI bot on company documentation, website URLs, and FAQs using high-precision vector search.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Action Buttons Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <button 
             onClick={() => {
               setSelectedFile(null);
@@ -204,17 +197,9 @@ export default function KnowledgeTab({
               setIsUploadModalOpen(true);
             }} 
             className="btn-secondary"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              background: 'rgba(16, 185, 129, 0.1)',
-              color: '#10b981',
-              fontWeight: 600
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <UploadCloud size={16} /> 📁 Upload Document
+            <UploadCloud size={16} /> Upload Document
           </button>
 
           <button 
@@ -224,42 +209,22 @@ export default function KnowledgeTab({
               setIsCrawlModalOpen(true);
             }} 
             className="btn-secondary"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              border: '1px solid rgba(99, 102, 241, 0.4)',
-              background: 'rgba(99, 102, 241, 0.1)',
-              color: 'var(--accent-indigo)',
-              fontWeight: 600
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <Globe size={16} /> 🌐 Auto-Crawl URL
+            <Globe size={16} /> Auto-Crawl URL
           </button>
 
-          <button onClick={openCreateModal} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Plus size={18} /> Add Knowledge Chunk
+          <button onClick={openCreateModal} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={16} /> Add Chunk
           </button>
         </div>
       </div>
 
       {/* Sub Tabs Navigation */}
-      <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px' }}>
+      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
         <button
           onClick={() => setActiveSubTab('knowledge')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            background: activeSubTab === 'knowledge' ? 'var(--accent-indigo)' : 'transparent',
-            color: activeSubTab === 'knowledge' ? '#fff' : 'var(--text-secondary)',
-            fontWeight: 600,
-            fontSize: '13.5px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
+          className={`nav-tab-pill ${activeSubTab === 'knowledge' ? 'active' : ''}`}
         >
           <BookOpen size={15} /> Indexed Knowledge Chunks ({knowledgeList.length})
         </button>
@@ -269,30 +234,11 @@ export default function KnowledgeTab({
             setActiveSubTab('unanswered');
             fetchUnanswered();
           }}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            background: activeSubTab === 'unanswered' ? 'var(--accent-indigo)' : 'transparent',
-            color: activeSubTab === 'unanswered' ? '#fff' : 'var(--text-secondary)',
-            fontWeight: 600,
-            fontSize: '13.5px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
+          className={`nav-tab-pill ${activeSubTab === 'unanswered' ? 'active' : ''}`}
         >
-          <HelpCircle size={15} /> Unanswered Visitor Questions
+          <HelpCircle size={15} /> Unanswered Questions
           {pendingUnansweredCount > 0 && (
-            <span style={{ 
-              background: '#f59e0b', 
-              color: '#000', 
-              padding: '1px 6px', 
-              borderRadius: '10px', 
-              fontSize: '11px', 
-              fontWeight: 700 
-            }}>
+            <span className="badge badge-amber" style={{ padding: '2px 7px', fontSize: '11px', fontWeight: 700 }}>
               {pendingUnansweredCount}
             </span>
           )}
@@ -303,17 +249,39 @@ export default function KnowledgeTab({
       {activeSubTab === 'knowledge' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {loading ? (
-            <div style={{ color: 'var(--text-muted)', padding: '20px' }}>Loading knowledge base...</div>
+            <div style={{ color: 'var(--text-muted)', padding: '24px', fontSize: '14px' }}>
+              Loading knowledge base...
+            </div>
           ) : knowledgeList.length === 0 ? (
-            <div className="glass-card" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <BookOpen size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>No knowledge entries found</div>
-              <p style={{ fontSize: '13.5px', marginTop: '6px', maxWidth: '500px', margin: '6px auto 16px auto' }}>
-                Give your bot accurate company facts. You can either auto-crawl a website URL or manually add documentation chunks.
+            <div className="clean-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                background: 'var(--bg-surface-subtle)',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                color: 'var(--text-muted)'
+              }}>
+                <BookOpen size={24} />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                No knowledge chunks indexed yet
+              </h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', maxWidth: '460px', margin: '0 auto 20px' }}>
+                Feed your sales bot accurate company facts. You can auto-crawl any website URL, upload a PDF/Word file, or add FAQ chunks.
               </p>
-              <button onClick={() => setIsCrawlModalOpen(true)} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <Globe size={16} /> Auto-Crawl Website URL
-              </button>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={() => setIsCrawlModalOpen(true)} className="btn-primary">
+                  <Globe size={15} /> Auto-Crawl Website URL
+                </button>
+                <button onClick={() => setIsUploadModalOpen(true)} className="btn-secondary">
+                  <UploadCloud size={15} /> Upload PDF / Doc
+                </button>
+              </div>
             </div>
           ) : (
             knowledgeList.map((item) => {
@@ -321,39 +289,59 @@ export default function KnowledgeTab({
               const isWebCrawl = item.content.startsWith('[Source:');
               const isDoc = item.content.startsWith('[File:');
               return (
-                <div key={item.id} className="glass-card glass-card-hover" style={{ padding: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                      <span className="badge badge-emerald" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <div 
+                  key={item.id} 
+                  className="clean-card clean-card-hover" 
+                  style={{ 
+                    padding: '20px 24px', 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    justifyContent: 'space-between', 
+                    gap: '20px' 
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                      <span className="badge badge-emerald">
                         <Cpu size={12} /> 1536-VECTOR INDEXED
                       </span>
-                      {isWebCrawl ? (
-                        <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {isWebCrawl && (
+                        <span className="badge badge-blue">
                           <Globe size={12} /> Webpage Crawl
                         </span>
-                      ) : null}
-                      {isDoc ? (
-                        <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      )}
+                      {isDoc && (
+                        <span className="badge badge-purple">
                           <FileText size={12} /> Document Upload
                         </span>
-                      ) : null}
+                      )}
                       {product && (
                         <span className="badge badge-indigo">
                           {product.name}
                         </span>
                       )}
                     </div>
-                    <p style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                    <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                       {item.content}
                     </p>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => openEditModal(item)} className="btn-secondary" style={{ padding: '6px 10px' }} title="Edit & Re-index">
-                      <Edit2 size={15} />
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button 
+                      onClick={() => openEditModal(item)} 
+                      className="btn-secondary" 
+                      style={{ padding: '6px 12px', fontSize: '12.5px' }} 
+                      title="Edit & Re-index"
+                    >
+                      <Edit2 size={13} />
                     </button>
-                    <button onClick={() => onDeleteKnowledge(item.id)} className="btn-danger" style={{ padding: '6px 10px' }} title="Delete Chunk">
-                      <Trash2 size={15} />
+                    <button 
+                      onClick={() => onDeleteKnowledge(item.id)} 
+                      className="btn-danger" 
+                      style={{ padding: '6px 12px', fontSize: '12.5px' }} 
+                      title="Delete Chunk"
+                    >
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -363,41 +351,72 @@ export default function KnowledgeTab({
         </div>
       )}
 
-      {/* SUB TAB 2: Unanswered Questions (Missed Queries Log) */}
+      {/* SUB TAB 2: Unanswered Questions */}
       {activeSubTab === 'unanswered' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)' }}>
-              Questions website visitors asked that the AI did not find knowledge for. Turn any missed question into verified knowledge in 1 click!
+              Questions website visitors asked that the AI did not find knowledge for. Turn any missed question into verified knowledge in 1 click.
             </p>
-            <button onClick={fetchUnanswered} className="btn-secondary" disabled={loadingUnanswered} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px' }}>
+            <button 
+              onClick={fetchUnanswered} 
+              className="btn-secondary" 
+              disabled={loadingUnanswered} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '6px 14px' }}
+            >
               <RefreshCw size={13} className={loadingUnanswered ? 'animate-spin' : ''} /> Refresh List
             </button>
           </div>
 
           {loadingUnanswered ? (
-            <div style={{ color: 'var(--text-muted)', padding: '20px' }}>Loading missed questions...</div>
+            <div style={{ color: 'var(--text-muted)', padding: '24px', fontSize: '14px' }}>
+              Loading missed questions...
+            </div>
           ) : unansweredQueries.length === 0 ? (
-            <div className="glass-card" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <CheckCircle2 size={40} color="#10b981" style={{ marginBottom: '12px' }} />
-              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Zero Unanswered Questions!</div>
-              <p style={{ fontSize: '13.5px', marginTop: '6px' }}>
-                Your AI bot has enough knowledge context to answer visitor queries, or no missed questions have been logged yet.
+            <div className="clean-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                background: 'var(--status-emerald-bg)',
+                color: 'var(--status-emerald-text)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <CheckCircle2 size={24} />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                Zero Unanswered Questions
+              </h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto' }}>
+                Your AI bot has enough knowledge context to answer all visitor queries, or no missed questions have been logged yet.
               </p>
             </div>
           ) : (
             unansweredQueries.map((q) => {
               const isResolved = q.status === 'resolved';
               return (
-                <div key={q.id} className="glass-card glass-card-hover" style={{ padding: '18px 22px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', borderLeft: isResolved ? '4px solid #10b981' : '4px solid #f59e0b' }}>
-                  <div style={{ flex: 1 }}>
+                <div 
+                  key={q.id} 
+                  className="clean-card clean-card-hover" 
+                  style={{ 
+                    padding: '20px 24px', 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    justifyContent: 'space-between', 
+                    gap: '20px'
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                       {isResolved ? (
-                        <span className="badge badge-emerald" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span className="badge badge-emerald">
                           <CheckCircle2 size={12} /> RESOLVED & INDEXED
                         </span>
                       ) : (
-                        <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span className="badge badge-amber">
                           <AlertTriangle size={12} /> KNOWLEDGE GAP / UNANSWERED
                         </span>
                       )}
@@ -406,32 +425,40 @@ export default function KnowledgeTab({
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                       "{q.question}"
                     </div>
 
                     {q.ai_response && (
-                      <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: '6px', marginTop: '6px' }}>
+                      <div style={{ 
+                        fontSize: '13px', 
+                        color: 'var(--text-secondary)', 
+                        background: 'var(--bg-surface-subtle)', 
+                        padding: '10px 14px', 
+                        borderRadius: '8px', 
+                        border: '1px solid var(--border-subtle)',
+                        lineHeight: 1.5 
+                      }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Bot Answered: </span>
                         {q.ai_response}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {!isResolved && (
                       <button 
                         onClick={() => openResolveModal(q)} 
                         className="btn-primary" 
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '8px 14px' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '7px 14px' }}
                       >
-                        <Plus size={14} /> Add to Knowledge Base
+                        <Plus size={14} /> Add to Knowledge
                       </button>
                     )}
                     <button 
                       onClick={() => handleDismissQuery(q.id)} 
                       className="btn-secondary" 
-                      style={{ fontSize: '12px', padding: '8px 12px' }}
+                      style={{ fontSize: '12px', padding: '7px 12px' }}
                       title="Dismiss query"
                     >
                       Dismiss
@@ -446,29 +473,38 @@ export default function KnowledgeTab({
 
       {/* MODAL 1: Auto-Crawl Website URL Modal */}
       {isCrawlModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-card" style={{ width: '600px', padding: '28px', maxWidth: '92%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-indigo)' }}>
-                <Globe size={20} />
+        <div className="modal-overlay">
+          <div className="modal-window">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'var(--brand-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Globe size={18} />
+                </div>
+                <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Auto-Crawl Website URL
+                </h2>
               </div>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Auto-Crawl Website & Vector Index
-              </h2>
+              <button 
+                onClick={() => setIsCrawlModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '20px' }}>
-              Provide a website URL (e.g., your homepage, about page, or services catalog). The crawler will fetch the page, clean HTML noise, chunk text, and compute OpenAI vector embeddings.
+
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '20px', lineHeight: 1.5 }}>
+              Enter any public webpage URL. The crawler extracts clean text, removes HTML noise, splits into coherent chunks, and computes vector embeddings.
             </p>
 
             <form onSubmit={handleStartCrawl} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Website / Webpage URL *
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Webpage URL *
                 </label>
                 <input
                   type="url"
                   required
-                  placeholder="https://1cnews.1crorebahrainjobs.com/about-us"
+                  placeholder="https://yourcompany.com/about-us"
                   value={crawlUrl}
                   onChange={(e) => setCrawlUrl(e.target.value)}
                   style={{ width: '100%' }}
@@ -476,13 +512,13 @@ export default function KnowledgeTab({
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   Associated Product (Optional)
                 </label>
                 <select 
                   value={crawlProductId} 
                   onChange={(e) => setCrawlProductId(e.target.value)} 
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  style={{ width: '100%' }}
                 >
                   <option value="">General Company Knowledge (No specific product)</option>
                   {products.map((p) => (
@@ -492,13 +528,13 @@ export default function KnowledgeTab({
               </div>
 
               {crawlError && (
-                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '13px' }}>
+                <div className="badge badge-rose" style={{ padding: '10px 14px', borderRadius: '8px', display: 'block' }}>
                   {crawlError}
                 </div>
               )}
 
               {crawlResult && (
-                <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '13px' }}>
+                <div className="clean-card" style={{ padding: '14px', background: 'var(--status-emerald-bg)', borderColor: 'var(--status-emerald-border)', color: 'var(--status-emerald-text)', fontSize: '13px' }}>
                   <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                     <CheckCircle2 size={16} /> Crawl Completed Successfully!
                   </div>
@@ -520,15 +556,15 @@ export default function KnowledgeTab({
                   type="submit" 
                   disabled={crawling} 
                   className="btn-primary" 
-                  style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{ flex: 1, justifyContent: 'center' }}
                 >
                   {crawling ? (
                     <>
-                      <RefreshCw size={15} className="animate-spin" /> Crawling & Indexing...
+                      <RefreshCw size={14} className="animate-spin" /> Crawling & Indexing...
                     </>
                   ) : (
                     <>
-                      <Sparkles size={16} /> Start Auto-Crawl & Index
+                      <Sparkles size={15} /> Start Auto-Crawl
                     </>
                   )}
                 </button>
@@ -538,25 +574,34 @@ export default function KnowledgeTab({
         </div>
       )}
 
-      {/* MODAL: Upload Document Modal (.pdf, .docx, .xlsx, .csv, .txt) */}
+      {/* MODAL 2: Upload Document Modal */}
       {isUploadModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-card" style={{ width: '600px', padding: '28px', maxWidth: '92%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                <UploadCloud size={20} />
+        <div className="modal-overlay">
+          <div className="modal-window">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'var(--status-emerald-bg)', color: 'var(--status-emerald-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UploadCloud size={18} />
+                </div>
+                <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Upload Knowledge Document
+                </h2>
               </div>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Upload Document & Vector Index
-              </h2>
+              <button 
+                onClick={() => setIsUploadModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '20px' }}>
-              Upload company documents, price books, FAQ guides, or product catalogs. Supported formats: <strong>PDF (.pdf)</strong>, <strong>Word (.docx)</strong>, <strong>Excel (.xlsx)</strong>, <strong>CSV (.csv)</strong>, and <strong>Plain Text (.txt)</strong>.
+
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '20px', lineHeight: 1.5 }}>
+              Upload company documents, price books, FAQ guides, or product catalogs. Supported formats: <strong>PDF</strong>, <strong>DOCX</strong>, <strong>XLSX</strong>, <strong>CSV</strong>, and <strong>TXT</strong>.
             </p>
 
             <form onSubmit={handleUploadDocument} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   Choose Document File *
                 </label>
                 <input
@@ -569,29 +614,29 @@ export default function KnowledgeTab({
                   }}
                   style={{ 
                     width: '100%', 
-                    padding: '12px', 
+                    padding: '14px', 
                     borderRadius: '8px', 
-                    border: '1px dashed var(--border-glass)', 
-                    background: 'var(--bg-secondary)', 
+                    border: '1px dashed var(--border-medium)', 
+                    background: 'var(--bg-surface-subtle)', 
                     color: 'var(--text-primary)',
                     cursor: 'pointer'
                   }}
                 />
                 {selectedFile && (
-                  <div style={{ fontSize: '12.5px', color: '#10b981', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '12.5px', color: 'var(--status-emerald-text)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <FileText size={14} /> Selected: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(1)} KB)
                   </div>
                 )}
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   Associated Product (Optional)
                 </label>
                 <select 
                   value={uploadProductId} 
                   onChange={(e) => setUploadProductId(e.target.value)} 
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  style={{ width: '100%' }}
                 >
                   <option value="">General Company Knowledge (No specific product)</option>
                   {products.map((p) => (
@@ -601,13 +646,13 @@ export default function KnowledgeTab({
               </div>
 
               {uploadError && (
-                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '13px' }}>
+                <div className="badge badge-rose" style={{ padding: '10px 14px', borderRadius: '8px', display: 'block' }}>
                   {uploadError}
                 </div>
               )}
 
               {uploadResult && (
-                <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '13px' }}>
+                <div className="clean-card" style={{ padding: '14px', background: 'var(--status-emerald-bg)', borderColor: 'var(--status-emerald-border)', color: 'var(--status-emerald-text)', fontSize: '13px' }}>
                   <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                     <CheckCircle2 size={16} /> File Ingested Successfully!
                   </div>
@@ -629,15 +674,15 @@ export default function KnowledgeTab({
                   type="submit" 
                   disabled={uploading || !selectedFile} 
                   className="btn-primary" 
-                  style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{ flex: 1, justifyContent: 'center' }}
                 >
                   {uploading ? (
                     <>
-                      <RefreshCw size={15} className="animate-spin" /> Parsing & Embedding...
+                      <RefreshCw size={14} className="animate-spin" /> Ingesting & Embedding...
                     </>
                   ) : (
                     <>
-                      <UploadCloud size={16} /> Upload & Vector Index
+                      <UploadCloud size={15} /> Upload & Index
                     </>
                   )}
                 </button>
@@ -647,27 +692,35 @@ export default function KnowledgeTab({
         </div>
       )}
 
-      {/* MODAL 2: Create / Edit / Resolve Knowledge Modal */}
+      {/* MODAL 3: Create / Edit Knowledge Modal */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-card" style={{ width: '580px', padding: '28px', maxWidth: '90%' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', color: 'var(--text-primary)' }}>
-              {resolvingQueryId 
-                ? 'Resolve & Index Missed Question' 
-                : editingKnowledge 
-                ? 'Edit Knowledge Chunk' 
-                : 'Add Knowledge Chunk'}
-            </h2>
+        <div className="modal-overlay">
+          <div className="modal-window">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {resolvingQueryId 
+                  ? 'Resolve & Index Missed Question' 
+                  : editingKnowledge 
+                  ? 'Edit Knowledge Chunk' 
+                  : 'Add Knowledge Chunk'}
+              </h2>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Associated Product
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Associated Product (Optional)
                 </label>
                 <select 
                   value={productId} 
                   onChange={(e) => setProductId(e.target.value)} 
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  style={{ width: '100%' }}
                 >
                   <option value="">General Knowledge (No Product)</option>
                   {products.map((p) => (
@@ -677,7 +730,7 @@ export default function KnowledgeTab({
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   Documentation Text / FAQ Answer *
                 </label>
                 <textarea 
@@ -695,7 +748,7 @@ export default function KnowledgeTab({
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
-                  Save & Generate 1536-Embedding
+                  Save & Index Chunk
                 </button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   BarChart3, 
   Users, 
@@ -7,169 +7,275 @@ import {
   Sliders, 
   Bot, 
   Sparkles,
-  Menu,
   X,
   Activity,
   Settings,
   ShieldAlert,
   ShieldCheck,
-  MessageSquare
+  MessageSquare,
+  LogOut,
+  ChevronRight
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, user, company }) {
-  const [collapsed, setCollapsed] = useState(false);
-
+export default function Sidebar({ 
+  activeTab, 
+  setActiveTab, 
+  user, 
+  company, 
+  leadsCount = 0,
+  unreadChatsCount = 0,
+  mobileOpen = false,
+  onCloseMobile = () => {},
+  onLogout = () => {}
+}) {
   const isSuperAdmin = user?.email === 'superadmin@platform.com';
 
   const navItems = isSuperAdmin ? [
     { id: 'superadmin', label: 'Command Center', icon: ShieldAlert },
     { id: 'settings', label: 'Platform Settings', icon: Settings },
   ] : [
-    { id: 'overview', label: 'Home', icon: BarChart3 },
-    { id: 'conversations', label: 'Live Conversations', icon: MessageSquare },
-    { id: 'leads', label: 'Leads Pipeline', icon: Users },
+    { id: 'overview', label: 'Dashboard', icon: BarChart3 },
+    { id: 'conversations', label: 'Live Conversations', icon: MessageSquare, badge: unreadChatsCount > 0 ? unreadChatsCount : null },
+    { id: 'leads', label: 'Leads Pipeline', icon: Users, badge: leadsCount > 0 ? leadsCount : null },
     { id: 'products', label: 'Product Catalog', icon: Package },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'guardrails', label: 'AI Guardrails', icon: ShieldCheck },
     { id: 'widget', label: 'Widget Studio', icon: Sliders },
-    { id: 'usage', label: 'Usage', icon: Activity },
+    { id: 'usage', label: 'Usage & Quota', icon: Activity },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
-    <aside style={{
-      width: collapsed ? '80px' : '260px',
-      height: '100vh',
-      position: 'sticky',
-      top: 0,
-      background: 'var(--bg-glass)',
-      backdropFilter: 'blur(20px)',
-      borderRight: '1px solid var(--border-glass)',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '20px 14px',
-      zIndex: 20,
-      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    }}>
-      {/* Brand & Hamburger Header */}
-      <div style={{
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div 
+          onClick={onCloseMobile}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.4)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 40,
+            transition: 'opacity 0.2s ease',
+          }}
+          className="hide-on-desktop"
+        />
+      )}
+
+      <aside style={{
+        width: '260px',
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        background: 'var(--bg-surface)',
+        borderRight: '1px solid var(--border-subtle)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'space-between',
-        paddingBottom: '16px',
-        borderBottom: '1px solid var(--border-glass)'
-      }}>
-        {!collapsed ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'var(--shadow-glow)'
-              }}>
-                <Bot size={22} color="#fff" />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  AI Sales Bot
-                </h2>
-                <span style={{ fontSize: '11px', color: 'var(--accent-indigo)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <Sparkles size={10} /> PRO PLATFORM
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => setCollapsed(true)}
-              style={{ background: 'transparent', color: 'var(--text-muted)', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
-              title="Collapse Sidebar"
-            >
-              <X size={18} />
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setCollapsed(false)}
-            style={{
+        flexDirection: 'column',
+        padding: '24px 16px',
+        zIndex: 50,
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        ...(mobileOpen ? {
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          transform: 'translateX(0)',
+          boxShadow: 'var(--shadow-modal)'
+        } : {})
+      }}
+      className={mobileOpen ? 'sidebar-mobile-open' : 'sidebar-normal'}
+      >
+        {/* Brand Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingBottom: '20px',
+          borderBottom: '1px solid var(--border-subtle)',
+          marginBottom: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
               width: '40px',
               height: '40px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: '#fff',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'var(--shadow-glow)'
-            }}
-            title="Expand Sidebar"
-          >
-            <Menu size={20} />
-          </button>
-        )}
-      </div>
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+              color: '#ffffff'
+            }}>
+              <Bot size={22} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                SalesBot AI
+              </h2>
+              <span style={{ fontSize: '11px', color: 'var(--brand-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <span className="pulse-dot" style={{ color: '#10b981' }} /> Live Platform
+              </span>
+            </div>
+          </div>
 
-      {/* Navigation Links */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '20px', flex: 1 }}>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              style={{
+          {/* Close button on mobile drawer */}
+          <button
+            onClick={onCloseMobile}
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              color: 'var(--text-muted)', 
+              cursor: 'pointer', 
+              padding: '6px', 
+              borderRadius: '8px',
+              display: 'none'
+            }}
+            className="mobile-close-btn"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Navigation Items */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          flex: 1,
+          overflowY: 'auto',
+          paddingRight: '4px'
+        }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 12px 8px 12px' }}>
+            Menu
+          </div>
+
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  onCloseMobile();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: isActive ? 'var(--brand-light)' : 'transparent',
+                  color: isActive ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                  fontWeight: isActive ? 600 : 500,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'var(--bg-surface-subtle)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Icon size={19} color={isActive ? 'var(--brand-primary)' : 'var(--text-muted)'} />
+                  <span>{item.label}</span>
+                </div>
+
+                {item.badge && (
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    background: isActive ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                    color: isActive ? '#ffffff' : 'var(--text-secondary)'
+                  }}>
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* User Account Snippet */}
+        <div style={{
+          borderTop: '1px solid var(--border-subtle)',
+          paddingTop: '16px',
+          marginTop: '12px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '12px',
+            background: 'var(--bg-surface-subtle)',
+            border: '1px solid var(--border-subtle)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '13px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                padding: '12px 14px',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '14px',
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                background: isActive ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))' : 'transparent',
-                border: isActive ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
-                transition: 'all 0.2s ease',
-                justifyContent: collapsed ? 'center' : 'flex-start'
-              }}
-              title={collapsed ? item.label : ''}
-            >
-              <Icon size={18} color={isActive ? '#6366f1' : 'var(--text-muted)'} />
-              {!collapsed && item.label}
-            </button>
-          );
-        })}
-      </nav>
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                {(user?.email || 'U')[0].toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  {company?.name || 'Workspace'}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  {user?.email || 'admin'}
+                </div>
+              </div>
+            </div>
 
-      {/* Footer User Profile (Botpress Style) */}
-      <div style={{
-        padding: collapsed ? '10px' : '12px',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-glass)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        marginTop: 'auto'
-      }}>
-        {!collapsed ? (
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {company ? company.name : 'Company Admin'}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {user ? user.email : ''}
-            </div>
+            <button
+              onClick={onLogout}
+              title="Sign Out"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >
+              <LogOut size={16} />
+            </button>
           </div>
-        ) : (
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#6366f1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}>
-            {user ? user.email.charAt(0).toUpperCase() : 'A'}
-          </div>
-        )}
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   );
 }

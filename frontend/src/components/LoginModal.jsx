@@ -6,10 +6,8 @@ import {
   EyeOff, 
   CheckCircle2, 
   AlertCircle, 
-  MailCheck, 
-  ExternalLink, 
-  Lock, 
   Mail, 
+  Lock, 
   Building2, 
   Globe, 
   Briefcase, 
@@ -17,7 +15,8 @@ import {
   ShieldCheck,
   Zap,
   Layers,
-  KeyRound
+  KeyRound,
+  ExternalLink
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -60,17 +59,17 @@ export default function LoginModal({ onLogin, onRegister }) {
     return () => window.removeEventListener('hashchange', checkHash);
   }, []);
 
-  // Auto-dismiss alerts after 5 seconds
+  // Auto-dismiss alerts
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(''), 5000);
+      const timer = setTimeout(() => setError(''), 6000);
       return () => clearTimeout(timer);
     }
   }, [error]);
 
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => setSuccess(''), 5000);
+      const timer = setTimeout(() => setSuccess(''), 6000);
       return () => clearTimeout(timer);
     }
   }, [success]);
@@ -79,19 +78,6 @@ export default function LoginModal({ onLogin, onRegister }) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(val.trim());
   };
-
-  // Password strength checker for registration
-  const getPasswordStrength = (pass) => {
-    if (!pass) return { score: 0, label: '', color: 'transparent' };
-    if (pass.length < 6) return { score: 1, label: 'Weak', color: '#f43f5e' };
-    if (pass.length < 8) return { score: 2, label: 'Fair', color: '#f59e0b' };
-    if (/[A-Z]/.test(pass) && /[0-9]/.test(pass) && pass.length >= 8) {
-      return { score: 4, label: 'Strong', color: '#10b981' };
-    }
-    return { score: 3, label: 'Good', color: '#6366f1' };
-  };
-
-  const strength = getPasswordStrength(password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -135,12 +121,12 @@ export default function LoginModal({ onLogin, onRegister }) {
             companyDescription.trim() || 'Company registered via portal'
           );
         } catch (err) {
-          throw new Error(`Company creation error: ${err.message}`);
+          throw new Error(`Company registration error: ${err.message}`);
         }
 
         try {
           const regRes = await onRegister.registerUser(comp.id, email, password);
-          setSuccess(`Registration successful! A verification email link has been sent to ${email}.`);
+          setSuccess(`Registration successful! Verification link sent to ${email}.`);
           if (regRes?.verification_url) {
             setVerificationUrl(regRes.verification_url);
           }
@@ -214,458 +200,383 @@ export default function LoginModal({ onLogin, onRegister }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
-      background: 'radial-gradient(ellipse at top left, #1e1b4b 0%, #0b0f19 50%, #030712 100%)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px',
+      position: 'fixed',
+      inset: 0,
+      background: 'var(--bg-canvas)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
       zIndex: 200,
       overflowY: 'auto'
     }}>
-      {/* Dynamic Background Glows */}
-      <div style={{
-        position: 'absolute', top: '10%', left: '15%', width: '400px', height: '400px',
-        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(0, 0, 0, 0) 70%)',
-        filter: 'blur(60px)', pointerEvents: 'none'
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '10%', right: '15%', width: '450px', height: '450px',
-        background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0, 0, 0, 0) 70%)',
-        filter: 'blur(60px)', pointerEvents: 'none'
-      }} />
-
-      {/* Main Container */}
-      <div style={{
-        width: '1000px',
-        maxWidth: '100%',
-        minHeight: '580px',
-        display: 'grid',
-        gridTemplateColumns: window.innerWidth > 768 ? '1fr 1.15fr' : '1fr',
-        background: 'rgba(17, 24, 39, 0.75)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '24px',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 40px rgba(99, 102, 241, 0.15)',
-        overflow: 'hidden',
-        position: 'relative'
-      }}>
+      {/* Main Clean Card Container */}
+      <div 
+        className="clean-card"
+        style={{
+          width: '960px',
+          maxWidth: '100%',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          borderRadius: '24px',
+          boxShadow: 'var(--shadow-modal)',
+          overflow: 'hidden',
+          background: 'var(--bg-surface)'
+        }}
+      >
         {/* Left Side: Brand & Feature Highlights */}
         <div style={{
           padding: '44px 36px',
-          background: 'linear-gradient(145deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.04))',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-surface-subtle)',
+          borderRight: '1px solid var(--border-subtle)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          position: 'relative'
+          gap: '32px'
         }}>
           <div>
-            {/* Logo Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+            {/* Logo Mark */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
               <div style={{
-                width: '48px', height: '48px', borderRadius: '14px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 8px 20px rgba(99, 102, 241, 0.4)'
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
               }}>
-                <Bot size={28} color="#fff" />
+                <Bot size={22} />
               </div>
               <div>
-                <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
-                  AI Sales Bot
+                <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                  SalesBot AI
                 </h1>
-                <span style={{ fontSize: '11px', color: '#818cf8', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                  Enterprise Sales Platform
+                <span style={{ fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 600 }}>
+                  Autonomous B2B Engagement
                 </span>
               </div>
             </div>
 
             {/* Main Headline */}
-            <h2 style={{ fontSize: '26px', fontWeight: 700, color: '#f8fafc', lineHeight: 1.3, marginBottom: '14px' }}>
-              Automate Customer Lead Capture with Conversational AI
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: '12px', letterSpacing: '-0.02em' }}>
+              Convert Website Visitors Into Verified Leads 24/7
             </h2>
-            <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.6, marginBottom: '32px' }}>
-              Empower your sales team with AI-driven widget chat assistant, real-time RAG knowledge base search, and automated qualified lead pipelines.
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '32px' }}>
+              Engage prospective clients instantly with an embeddable AI sales assistant powered by RAG knowledge search and live human takeover.
             </p>
 
-            {/* Feature Bullets */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Feature Bullets with Pastel Badges */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Zap size={18} />
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9' }}>24/7 AI Qualification</h4>
-                  <p style={{ fontSize: '12px', color: '#64748b' }}>Instantly convert web visitors into verified CRM leads.</p>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Autonomous Qualification</h4>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Captures name, email, phone, company & requirements automatically.</p>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Layers size={18} />
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9' }}>Vector Knowledge Base</h4>
-                  <p style={{ fontSize: '12px', color: '#64748b' }}>RAG vector store with product search & doc embeddings.</p>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>RAG Vector Knowledge Base</h4>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Indexes PDFs, Word docs, Excel spreadsheets, and live URLs.</p>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <ShieldCheck size={18} />
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9' }}>Isolated Multi-Tenant Architecture</h4>
-                  <p style={{ fontSize: '12px', color: '#64748b' }}>Dedicated company data privacy & security standards.</p>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Live Human Agent Takeover</h4>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transition between AI and human reps smoothly without visitor interruption.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Footer badge */}
-          <div style={{ paddingTop: '24px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '12px' }}>
-            <Sparkles size={14} color="#6366f1" /> Powered by OpenAI & Vector RAG Engine
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Sparkles size={14} color="var(--brand-primary)" /> BYOK Multi-Model: OpenAI, NVIDIA NIM, DeepSeek & Groq
           </div>
         </div>
 
         {/* Right Side: Auth Form Container */}
-        <div style={{ padding: '44px 38px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          
+        <div style={{ padding: '44px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {/* Mode Switcher Tabs */}
-          <div style={{
-            display: 'flex',
-            background: 'rgba(15, 23, 42, 0.6)',
-            padding: '4px',
-            borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            marginBottom: '28px'
-          }}>
-            <button
-              type="button"
-              onClick={() => { setMode('login'); setError(''); setSuccess(''); setVerificationUrl(''); }}
-              style={{
-                flex: 1,
-                padding: '9px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                background: mode === 'login' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                color: mode === 'login' ? '#fff' : '#94a3b8',
-                boxShadow: mode === 'login' ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none'
-              }}
-            >
-              Sign In
-            </button>
+          {(mode === 'login' || mode === 'register') && (
+            <div style={{
+              display: 'flex',
+              background: 'var(--bg-surface-subtle)',
+              padding: '4px',
+              borderRadius: '9999px',
+              border: '1px solid var(--border-subtle)',
+              marginBottom: '28px'
+            }}>
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError(''); setSuccess(''); setVerificationUrl(''); }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: mode === 'login' ? 700 : 500,
+                  background: mode === 'login' ? 'var(--bg-surface)' : 'transparent',
+                  color: mode === 'login' ? 'var(--brand-primary)' : 'var(--text-muted)',
+                  boxShadow: mode === 'login' ? 'var(--shadow-subtle)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setError(''); setSuccess(''); setVerificationUrl(''); }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: mode === 'register' ? 700 : 500,
+                  background: mode === 'register' ? 'var(--bg-surface)' : 'transparent',
+                  color: mode === 'register' ? 'var(--brand-primary)' : 'var(--text-muted)',
+                  boxShadow: mode === 'register' ? 'var(--shadow-subtle)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Create Workspace
+              </button>
+            </div>
+          )}
 
-            <button
-              type="button"
-              onClick={() => { setMode('register'); setError(''); setSuccess(''); setVerificationUrl(''); }}
-              style={{
-                flex: 1,
-                padding: '9px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                background: mode === 'register' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                color: mode === 'register' ? '#fff' : '#94a3b8',
-                boxShadow: mode === 'register' ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none'
-              }}
-            >
-              Register Company
-            </button>
-          </div>
-
-          {/* Form Header */}
-          <div style={{ marginBottom: '22px' }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#fff' }}>
-              {mode === 'login' && 'Sign in to Dashboard'}
-              {mode === 'register' && 'Create Company Account'}
-              {mode === 'forgot' && 'Reset Password'}
-              {mode === 'reset' && 'Set New Password'}
-              {mode === 'unverified' && 'Verify Email Address'}
-            </h2>
-            <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '4px' }}>
-              {mode === 'login' && 'Enter your credentials to access your sales portal.'}
-              {mode === 'register' && 'Set up your company workspace and admin profile.'}
-              {mode === 'forgot' && 'Enter your account email to receive recovery link.'}
-              {mode === 'reset' && 'Enter and confirm your new password.'}
-              {mode === 'unverified' && 'Complete email verification to access your workspace.'}
-            </p>
-          </div>
-
-          {/* Error Alert */}
+          {/* Clean Alert Banners */}
           {error && (
             <div style={{
-              background: 'rgba(244, 63, 94, 0.12)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              color: '#fb7185',
-              padding: '12px 14px',
-              borderRadius: '10px',
+              background: 'var(--status-rose-bg)',
+              color: 'var(--status-rose-text)',
+              border: '1px solid var(--status-rose-border)',
+              padding: '12px 16px',
+              borderRadius: '12px',
               fontSize: '13px',
-              marginBottom: '18px',
+              fontWeight: 500,
               display: 'flex',
-              alignItems: 'flex-start',
+              alignItems: 'center',
               gap: '10px',
-              lineHeight: '1.4'
+              marginBottom: '20px'
             }}>
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>{error}</div>
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
             </div>
           )}
 
-          {/* Success Alert */}
           {success && (
             <div style={{
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#34d399',
-              padding: '12px 14px',
-              borderRadius: '10px',
+              background: 'var(--status-emerald-bg)',
+              color: 'var(--status-emerald-text)',
+              border: '1px solid var(--status-emerald-border)',
+              padding: '12px 16px',
+              borderRadius: '12px',
               fontSize: '13px',
-              marginBottom: '18px',
+              fontWeight: 500,
               display: 'flex',
-              alignItems: 'flex-start',
+              alignItems: 'center',
               gap: '10px',
-              lineHeight: '1.4'
+              marginBottom: '20px'
             }}>
-              <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>{success}</div>
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+              <span>{success}</span>
             </div>
           )}
 
-
-          {/* Authentication Form */}
+          {/* Form Content */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {mode === 'register' && (
               <>
-                {/* Company Name */}
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                     Company Name *
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <Building2 size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                       type="text"
                       required
-                      placeholder="e.g. DLK Software Solution"
+                      placeholder="e.g. Acme Corporation"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      style={{ width: '100%', paddingLeft: '38px' }}
+                      style={{ width: '100%', paddingLeft: '40px' }}
                     />
                   </div>
                 </div>
 
-                {/* Website & Industry grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Website URL
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Globe size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                      <input
-                        type="url"
-                        placeholder="https://company.com"
-                        value={companyWebsite}
-                        onChange={(e) => setCompanyWebsite(e.target.value)}
-                        style={{ width: '100%', paddingLeft: '38px' }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Industry / Focus
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Briefcase size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                      <input
-                        type="text"
-                        placeholder="Software / Training"
-                        value={companyDescription}
-                        onChange={(e) => setCompanyDescription(e.target.value)}
-                        style={{ width: '100%', paddingLeft: '38px' }}
-                      />
-                    </div>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                    Company Website
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Globe size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type="url"
+                      placeholder="https://example.com"
+                      value={companyWebsite}
+                      onChange={(e) => setCompanyWebsite(e.target.value)}
+                      style={{ width: '100%', paddingLeft: '40px' }}
+                    />
                   </div>
                 </div>
               </>
             )}
 
-            {/* Email Address (Not shown in reset mode) */}
             {mode !== 'reset' && (
               <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {mode === 'register' ? 'Admin Email Address *' : 'Email Address *'}
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Work Email Address *
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Mail size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="email"
                     required
-                    placeholder="admin@company.com"
+                    placeholder="name@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={{ width: '100%', paddingLeft: '38px' }}
+                    style={{ width: '100%', paddingLeft: '40px' }}
                   />
                 </div>
               </div>
             )}
 
-            {/* Reset Password Fields */}
-            {mode === 'reset' && (
-              <>
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    New Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={8}
-                      placeholder="Minimum 8 characters"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      style={{ width: '100%', paddingLeft: '38px', paddingRight: '40px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', color: '#64748b', cursor: 'pointer'
-                      }}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Confirm New Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={8}
-                      placeholder="Re-enter new password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      style={{ width: '100%', paddingLeft: '38px' }}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Regular Password Field for Login & Register */}
-            {mode !== 'forgot' && mode !== 'unverified' && mode !== 'reset' && (
+            {(mode === 'login' || mode === 'register') && (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     Password *
                   </label>
                   {mode === 'login' && (
                     <button
                       type="button"
                       onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
-                      style={{ background: 'none', border: 'none', color: '#818cf8', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--brand-primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                     >
-                      Forgot Password?
+                      Forgot password?
                     </button>
                   )}
                 </div>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Lock size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    minLength={8}
-                    placeholder="••••••••"
+                    placeholder="At least 8 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    style={{ width: '100%', paddingLeft: '38px', paddingRight: '40px' }}
+                    style={{ width: '100%', paddingLeft: '40px', paddingRight: '40px' }}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                      background: 'none', border: 'none', color: '#64748b', cursor: 'pointer'
-                    }}
+                    onClick={() => setShowPassword(p => !p)}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-
-                {/* Password Strength Meter for Registration */}
-                {mode === 'register' && password.length > 0 && (
-                  <div style={{ marginTop: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-                      <span style={{ color: '#64748b' }}>Strength:</span>
-                      <span style={{ color: strength.color, fontWeight: 700 }}>{strength.label}</span>
-                    </div>
-                    <div style={{ height: '4px', width: '100%', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${(strength.score / 4) * 100}%`,
-                        background: strength.color,
-                        transition: 'all 0.3s ease'
-                      }} />
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Submit Button */}
+            {mode === 'reset' && (
+              <>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                    New Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter new password (min 8 chars)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                    Confirm New Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Re-enter new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </>
+            )}
+
             <button
               type="submit"
-              className="btn-primary"
               disabled={loading}
-              style={{
-                width: '100%',
-                justify: 'center',
-                marginTop: '10px',
-                padding: '13px',
-                fontSize: '14px',
-                borderRadius: '12px'
-              }}
+              className="btn-primary"
+              style={{ width: '100%', padding: '12px', marginTop: '8px' }}
             >
-              {loading ? 'Processing...' : (
-                mode === 'register' ? 'Register Account' :
-                mode === 'login' ? 'Sign In to Account' :
-                mode === 'reset' ? 'Save New Password' :
-                mode === 'unverified' ? 'Resend Email Verification' :
-                'Send Reset Password Instructions'
+              {loading ? 'Please wait...' : (
+                mode === 'login' ? 'Sign In to Dashboard' :
+                mode === 'register' ? 'Create Company Account' :
+                mode === 'forgot' ? 'Send Password Reset Link' :
+                mode === 'unverified' ? 'Resend Verification Email' :
+                'Update Password'
               )}
-              <ArrowRight size={16} />
             </button>
-          </form>
 
-          {/* Footer Back Link */}
-          {(mode === 'forgot' || mode === 'reset') && (
-            <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px' }}>
+            {mode === 'forgot' && (
               <button
                 type="button"
-                onClick={() => { setMode('login'); setError(''); setSuccess(''); window.location.hash = ''; }}
-                style={{ background: 'none', border: 'none', color: '#818cf8', fontWeight: 600, cursor: 'pointer' }}
+                onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }}
               >
-                ← Back to Sign In
+                &larr; Back to Sign In
+              </button>
+            )}
+          </form>
+
+          {/* Quick email verification simulation badge if link available */}
+          {verificationUrl && (
+            <div style={{ marginTop: '20px', padding: '14px', borderRadius: '12px', background: 'var(--status-blue-bg)', border: '1px solid var(--status-blue-border)' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--status-blue-text)', marginBottom: '8px' }}>
+                Testing / Development Link:
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSimulateVerification(verificationUrl)}
+                disabled={verifying}
+                style={{
+                  width: '100%',
+                  padding: '8px 14px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  background: 'var(--brand-primary)',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {verifying ? 'Verifying...' : 'Click to Verify Email Instantly'}
               </button>
             </div>
           )}
-
         </div>
       </div>
     </div>

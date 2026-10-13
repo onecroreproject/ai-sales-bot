@@ -32,13 +32,15 @@ import {
   Layers,
   Trash2,
   MessageSquare,
-  ShieldCheck
+  ShieldCheck,
+  Menu
 } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [company, setCompany] = useState(null);
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'light');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
     if (window.location.pathname.includes('/super-admin') || window.location.hash.includes('super-admin')) {
       return 'superadmin';
@@ -48,6 +50,15 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(getAuthToken()));
   const [verifyStatus, setVerifyStatus] = useState(null); // { type: 'success'|'error', msg: string }
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Apply theme class to body
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+  }, [theme]);
 
   // Data states
   const [stats, setStats] = useState(null);
@@ -246,11 +257,7 @@ export default function App() {
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    if (nextTheme === 'light') {
-      document.body.classList.add('light-theme');
-    } else {
-      document.body.classList.remove('light-theme');
-    }
+    localStorage.setItem('app_theme', nextTheme);
   };
 
   // Sync hash routing & email verification link handling
@@ -444,11 +451,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Subtle Background Glow Orbs */}
-      <div className="gradient-bg-orb orb-1" />
-      <div className="gradient-bg-orb orb-2" />
-
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
       {/* Left Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -465,16 +468,17 @@ export default function App() {
         onLogout={handleLogout}
         theme={theme}
         toggleTheme={toggleTheme}
+        mobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
       />
 
       {/* Right Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
-        {/* Botpress Style Top Header Bar */}
-        <header style={{
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Clean Modern SaaS Header */}
+        <header className="app-header" style={{
           height: '64px',
-          background: 'var(--bg-glass)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--border-glass)',
+          background: 'var(--bg-surface)',
+          borderBottom: '1px solid var(--border-subtle)',
           padding: '0 36px',
           display: 'flex',
           alignItems: 'center',
@@ -483,20 +487,30 @@ export default function App() {
           top: 0,
           zIndex: 15
         }}>
-          {/* Left Breadcrumb & Workspace Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>
-            <span style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {company ? company.name : 'Default Workspace'} <ChevronDown size={14} color="var(--text-muted)" />
-            </span>
-            <span style={{ color: 'var(--text-muted)' }}>&gt;</span>
-            <span style={{ textTransform: 'capitalize', color: 'var(--text-primary)', fontWeight: 600 }}>
-              {activeTab}
-            </span>
+          {/* Left Breadcrumb & Mobile Menu Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              className="mobile-menu-btn"
+              onClick={() => setMobileSidebarOpen(true)}
+              title="Open Navigation Menu"
+            >
+              <Menu size={20} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {company ? company.name : 'Workspace'}
+              </span>
+              <span style={{ color: 'var(--text-muted)' }}>/</span>
+              <span style={{ textTransform: 'capitalize', color: 'var(--brand-primary)', fontWeight: 600 }}>
+                {activeTab}
+              </span>
+            </div>
           </div>
 
           {/* Center Search Bar with Live Filter Dropdown */}
-          <div ref={searchRef} style={{ position: 'relative', width: '340px' }}>
-            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <div ref={searchRef} className="header-search-container" style={{ position: 'relative', width: '320px' }}>
+            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Search features, leads, products..."
@@ -508,13 +522,13 @@ export default function App() {
               onFocus={() => setSearchOpen(true)}
               style={{
                 width: '100%',
-                paddingLeft: '36px',
+                paddingLeft: '38px',
                 paddingRight: searchQuery ? '32px' : '14px',
-                height: '36px',
+                height: '38px',
                 fontSize: '13px',
-                borderRadius: '20px',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-glass)',
+                borderRadius: 'var(--radius-pill)',
+                background: 'var(--bg-surface-subtle)',
+                border: '1px solid var(--border-subtle)',
                 color: 'var(--text-primary)'
               }}
             />
@@ -1025,7 +1039,7 @@ export default function App() {
         </header>
 
         {/* Main Workspace Body */}
-        <main style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', zIndex: 10 }}>
+        <main className="app-main-content" style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', zIndex: 10 }}>
           {activeTab === 'overview' && <OverviewTab stats={stats} loading={loading} company={company} onNavigateTab={(tab) => setActiveTab(tab)} />}
           {activeTab === 'conversations' && <ConversationsTab />}
           {activeTab === 'leads' && (

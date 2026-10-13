@@ -63,15 +63,15 @@ export default function LeadsTab({
   const getStatusBadge = (status) => {
     switch (status) {
       case 'new': 
-        return <span className="badge badge-indigo" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Sparkles size={11} /> NEW LEAD</span>;
+        return <span className="badge badge-blue"><Sparkles size={11} /> New Lead</span>;
       case 'contacted': 
-        return <span className="badge badge-amber" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={11} /> CONTACTED</span>;
+        return <span className="badge badge-amber"><Clock size={11} /> Contacted</span>;
       case 'converted': 
-        return <span className="badge badge-emerald" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={11} /> CONVERTED</span>;
+        return <span className="badge badge-emerald"><CheckCircle2 size={11} /> Converted</span>;
       case 'lost': 
-        return <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>LOST</span>;
+        return <span className="badge badge-rose">Lost</span>;
       default: 
-        return <span className="badge badge-indigo">{status?.toUpperCase() || 'NEW'}</span>;
+        return <span className="badge badge-blue">{status || 'New'}</span>;
     }
   };
 
