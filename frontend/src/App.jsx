@@ -1087,7 +1087,7 @@ export default function App() {
               onRegenerateKey={handleRegenerateKey}
             />
           )}
-          {activeTab === 'usage' && <UsageTab stats={stats} loading={loading} />}
+          {activeTab === 'usage' && <UsageTab stats={stats} loading={loading} company={company} onNavigateTab={(tab) => setActiveTab(tab)} />}
           {activeTab === 'settings' && <SettingsTab company={company} onUpdateCompany={handleUpdateCompany} />}
           {activeTab === 'superadmin' && <SuperAdminTab />}
         </main>
