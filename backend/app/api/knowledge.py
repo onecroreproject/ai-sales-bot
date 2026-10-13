@@ -155,7 +155,7 @@ async def crawl_website_url_api(
 ):
     """Auto-crawl website URL, strip HTML, split into semantic chunks, and vector embed."""
     company = await get_company(db, current_user.company_id)
-    api_key = company.llm_api_key if company else None
+    api_key = company.llm_api_key if (company and company.llm_provider == "openai" and company.llm_api_key and company.llm_api_key.startswith("sk-")) else None
 
     try:
         result = await crawl_and_index_url(
@@ -187,7 +187,7 @@ async def upload_document_api(
 ):
     """Upload and vectorize PDF, DOCX, XLSX, CSV, or TXT into Knowledge Base."""
     company = await get_company(db, current_user.company_id)
-    api_key = company.llm_api_key if company else None
+    api_key = company.llm_api_key if (company and company.llm_provider == "openai" and company.llm_api_key and company.llm_api_key.startswith("sk-")) else None
 
     content_bytes = await file.read()
     if not content_bytes:

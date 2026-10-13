@@ -143,7 +143,8 @@ async def chat(
     # ---------------------------------------------------------
 
     try:
-        query_embedding = await create_embedding(message, api_key=api_key)
+        embedding_key = api_key if (llm_provider == "openai" and api_key and api_key.startswith("sk-")) else settings.OPENAI_API_KEY
+        query_embedding = await create_embedding(message, api_key=embedding_key)
         results = await search_knowledge(
             db=db,
             company_id=company_id,

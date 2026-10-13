@@ -16,6 +16,15 @@ export default function SettingsTab({ company, onUpdateCompany }) {
       { id: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
       { id: 'o1-mini', label: 'o1 Mini (Reasoning Model)' },
     ],
+    nvidia: [
+      { id: 'openai/gpt-oss-20b', label: 'openai/gpt-oss-20b (NVIDIA NIM - Recommended)' },
+      { id: 'meta/llama-3.3-70b-instruct', label: 'meta/llama-3.3-70b-instruct' },
+      { id: 'meta/llama-3.1-405b-instruct', label: 'meta/llama-3.1-405b-instruct (Ultra Intelligence)' },
+      { id: 'deepseek-ai/deepseek-r1', label: 'deepseek-ai/deepseek-r1 (Reasoning)' },
+      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', label: 'nvidia/llama-3.1-nemotron-70b-instruct' },
+      { id: 'mistralai/mistral-large-2-instruct', label: 'mistralai/mistral-large-2-instruct' },
+      { id: 'custom', label: 'Custom NVIDIA Model ID (Type below)...' },
+    ],
     anthropic: [
       { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (State of the Art)' },
       { id: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku (Lightning Fast)' },
@@ -128,6 +137,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
               >
                 <option value="openai">OpenAI</option>
+                <option value="nvidia">NVIDIA NIM (integrate.api.nvidia.com)</option>
                 <option value="anthropic">Anthropic (Claude)</option>
                 <option value="google">Google (Gemini)</option>
                 <option value="groq">Groq (Ultra-Fast Llama 3)</option>
@@ -157,7 +167,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
                 required
                 value={customModelInput}
                 onChange={(e) => setCustomModelInput(e.target.value)}
-                placeholder="e.g. meta-llama/llama-3.3-70b-instruct or mistral-large-latest"
+                placeholder={llmProvider === 'nvidia' ? "e.g. meta/llama-3.3-70b-instruct or deepseek-ai/deepseek-r1" : "e.g. meta-llama/llama-3.3-70b-instruct or mistral-large-latest"}
                 style={{ width: '100%' }}
               />
             </div>
@@ -165,7 +175,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
 
           <div>
             <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              Your {llmProvider.toUpperCase()} API Key
+              Your {llmProvider === 'nvidia' ? 'NVIDIA NIM' : llmProvider.toUpperCase()} API Key
             </label>
             <input 
               type="password" 
@@ -173,6 +183,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
               onChange={(e) => setLlmApiKey(e.target.value)} 
               placeholder={
                 llmProvider === 'openai' ? 'sk-...' :
+                llmProvider === 'nvidia' ? 'nvapi-...' :
                 llmProvider === 'anthropic' ? 'sk-ant-api03-...' :
                 llmProvider === 'google' ? 'AIzaSy...' :
                 llmProvider === 'groq' ? 'gsk_...' :
@@ -180,9 +191,15 @@ export default function SettingsTab({ company, onUpdateCompany }) {
               } 
               style={{ width: '100%' }} 
             />
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-              We will use this key exclusively for your company's chatbot traffic. You have full control over your AI costs with zero artificial platform limits.
-            </p>
+            {llmProvider === 'nvidia' ? (
+              <p style={{ fontSize: '12px', color: '#10b981', marginTop: '6px' }}>
+                ⚡ Connected to NVIDIA NIM API (<code>https://integrate.api.nvidia.com/v1</code>). Enter your NVIDIA Personal/Org API Key (starts with <code>nvapi-</code>). Reasoning models like <code>openai/gpt-oss-20b</code> and DeepSeek-R1 are fully supported.
+              </p>
+            ) : (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                We will use this key exclusively for your company's chatbot traffic. You have full control over your AI costs with zero artificial platform limits.
+              </p>
+            )}
           </div>
 
           {/* Phase 2: Bot Personality & Custom Rules */}

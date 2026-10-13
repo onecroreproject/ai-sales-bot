@@ -25,7 +25,7 @@ async def create_knowledge(
             raise ValueError("Product not found for this company")
             
     company = await get_company(db, knowledge_data.company_id)
-    api_key = company.llm_api_key if company else settings.OPENAI_API_KEY
+    api_key = company.llm_api_key if (company and company.llm_provider == "openai" and company.llm_api_key and company.llm_api_key.startswith("sk-")) else settings.OPENAI_API_KEY
 
     embedding = await create_embedding(knowledge_data.content, api_key=api_key)
 
@@ -93,7 +93,7 @@ async def update_knowledge(
 
     if knowledge_data.content is not None and knowledge_data.content != knowledge.content:
         company = await get_company(db, company_id)
-        api_key = company.llm_api_key if company else settings.OPENAI_API_KEY
+        api_key = company.llm_api_key if (company and company.llm_provider == "openai" and company.llm_api_key and company.llm_api_key.startswith("sk-")) else settings.OPENAI_API_KEY
         
         knowledge.content = knowledge_data.content
         knowledge.embedding = await create_embedding(knowledge_data.content, api_key=api_key)
