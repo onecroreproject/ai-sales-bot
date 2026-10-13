@@ -265,15 +265,37 @@ export default function SettingsTab({ company, onUpdateCompany }) {
                 </button>
               </div>
 
-              {llmProvider === 'nvidia' ? (
-                <div className="badge badge-emerald" style={{ marginTop: '8px', fontSize: '12px', padding: '6px 12px' }}>
-                  ⚡ Connected to NVIDIA NIM API (<code>https://integrate.api.nvidia.com/v1</code>). Reasoning tokens and high-throughput inference enabled.
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Endpoint:</span>
+                  <code style={{ 
+                    background: 'var(--bg-surface-subtle)', 
+                    padding: '2px 8px', 
+                    borderRadius: '6px', 
+                    border: '1px solid var(--border-subtle)', 
+                    fontSize: '11.5px', 
+                    color: 'var(--brand-primary)',
+                    fontFamily: 'monospace'
+                  }}>
+                    {llmProvider === 'nvidia' 
+                      ? 'https://integrate.api.nvidia.com/v1' 
+                      : llmProvider === 'groq' 
+                      ? 'https://api.groq.com/openai/v1' 
+                      : 'https://api.openai.com/v1'}
+                  </code>
+                  {company?.llm_provider === llmProvider && company?.llm_api_key ? (
+                    <span className="badge badge-emerald" style={{ padding: '2px 8px', fontSize: '11px' }}>
+                      ✓ Currently Active
+                    </span>
+                  ) : null}
                 </div>
-              ) : (
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                  Your secret key is stored with military-grade encryption and used strictly for your company's live chats.
+
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                  {llmProvider === 'nvidia' 
+                    ? 'Enter your NVIDIA NGC key (starts with nvapi-). Click "Save Workspace Settings" below to apply.' 
+                    : 'Your API key is securely encrypted and used exclusively for your live chatbot.'}
                 </p>
-              )}
+              </div>
             </div>
           </div>
         </div>

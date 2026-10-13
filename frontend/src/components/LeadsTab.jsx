@@ -75,8 +75,11 @@ export default function LeadsTab({
     }
   };
 
-  const handleExportCSV = () => {
-    if (!leads || leads.length === 0) {
+  const [exportSuccess, setExportSuccess] = useState(false);
+
+  const handleExportCSV = (exportOnlyFiltered = false) => {
+    const listToExport = exportOnlyFiltered && filteredLeads.length > 0 ? filteredLeads : (leads || []);
+    if (!listToExport || listToExport.length === 0) {
       alert('No leads available to export.');
       return;
     }
@@ -94,7 +97,7 @@ export default function LeadsTab({
       'Referral Domain'
     ];
 
-    const rows = leads.map(l => [
+    const rows = listToExport.map(l => [
       l.id,
       `"${(l.name || '').replace(/"/g, '""')}"`,
       `"${(l.email || '').replace(/"/g, '""')}"`,
@@ -107,14 +110,20 @@ export default function LeadsTab({
       `"${(l.origin_domain || 'Direct / Widget').replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    // Prepend UTF-8 BOM (\uFEFF) so Excel opens UTF-8 files correctly with zero garbled characters
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `leads_pipeline_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `leads_pipeline_${exportOnlyFiltered ? 'filtered_' : ''}${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setExportSuccess(true);
+    setTimeout(() => setExportSuccess(false), 2500);
   };
 
   const handleCreateSubmit = async (e) => {
@@ -160,27 +169,36 @@ export default function LeadsTab({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
-            onClick={handleExportCSV}
+            onClick={() => handleExportCSV(false)}
             className="btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', padding: '9px 15px' }}
-            title="Download CSV export"
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              fontSize: '13.5px', 
+              padding: '9px 16px',
+              borderColor: exportSuccess ? 'var(--status-emerald-border)' : undefined,
+              color: exportSuccess ? 'var(--status-emerald-text)' : undefined
+            }}
+            title="Download full CSV/Excel export"
           >
-            <Download size={15} /> Export CSV ({leads?.length || 0})
+            {exportSuccess ? <CheckCircle2 size={15} color="#047857" /> : <Download size={15} />}
+            {exportSuccess ? 'Exported Successfully!' : `Export CSV / Excel (${leads?.length || 0})`}
           </button>
 
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', padding: '9px 16px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', padding: '9px 18px' }}
           >
-            <Plus size={16} /> + Add Lead Manually
+            <Plus size={16} /> Add Lead Manually
           </button>
         </div>
       </div>
 
       {/* Explainer Banner: All Data Points Collected by Chatbot */}
       {showFieldsInfo && (
-        <div className="glass-card" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05))', border: '1px solid rgba(99, 102, 241, 0.25)', position: 'relative' }}>
+        <div className="clean-card" style={{ padding: '20px 24px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', position: 'relative' }}>
           <button
             onClick={() => setShowFieldsInfo(false)}
             style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
