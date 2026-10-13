@@ -48,6 +48,8 @@ export default function KnowledgeTab({
   const [isCrawlModalOpen, setIsCrawlModalOpen] = useState(false);
   const [crawlUrl, setCrawlUrl] = useState('');
   const [crawlProductId, setCrawlProductId] = useState('');
+  const [crawlMode, setCrawlMode] = useState('single'); // 'single' | 'deep'
+  const [maxPages, setMaxPages] = useState(15);
   const [crawling, setCrawling] = useState(false);
   const [crawlResult, setCrawlResult] = useState(null);
   const [crawlError, setCrawlError] = useState(null);
@@ -134,7 +136,7 @@ export default function KnowledgeTab({
     setCrawlResult(null);
 
     try {
-      const res = await api.crawlUrl(crawlUrl.trim(), crawlProductId || null);
+      const res = await api.crawlUrl(crawlUrl.trim(), crawlProductId || null, crawlMode, maxPages);
       setCrawlResult(res);
       if (onRefresh) onRefresh();
     } catch (err) {
@@ -492,24 +494,88 @@ export default function KnowledgeTab({
               </button>
             </div>
 
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '20px', lineHeight: 1.5 }}>
-              Enter any public webpage URL. The crawler extracts clean text, removes HTML noise, splits into coherent chunks, and computes vector embeddings.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '16px', lineHeight: 1.5 }}>
+              Extract content from your public website, remove HTML boilerplate, split into semantic chunks, and generate 1536-dimension RAG vector embeddings.
             </p>
 
             <form onSubmit={handleStartCrawl} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Crawl Mode Selector */}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
+                  Crawl Scope
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCrawlMode('single')}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: crawlMode === 'single' ? '2px solid var(--brand-primary)' : '1px solid var(--border-subtle)',
+                      background: crawlMode === 'single' ? 'var(--brand-light)' : 'var(--bg-surface-subtle)',
+                      color: crawlMode === 'single' ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                      fontWeight: crawlMode === 'single' ? 700 : 500,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>📄 Single Webpage</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Fast — crawls 1 exact URL</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCrawlMode('deep')}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: crawlMode === 'deep' ? '2px solid var(--brand-primary)' : '1px solid var(--border-subtle)',
+                      background: crawlMode === 'deep' ? 'var(--brand-light)' : 'var(--bg-surface-subtle)',
+                      color: crawlMode === 'deep' ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                      fontWeight: crawlMode === 'deep' ? 700 : 500,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>🕸️ Recursive Deep Crawl</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Follows internal website links</div>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Webpage URL *
+                  {crawlMode === 'deep' ? 'Root Website URL *' : 'Webpage URL *'}
                 </label>
                 <input
                   type="url"
                   required
-                  placeholder="https://yourcompany.com/about-us"
+                  placeholder={crawlMode === 'deep' ? "https://yourcompany.com" : "https://yourcompany.com/about-us"}
                   value={crawlUrl}
                   onChange={(e) => setCrawlUrl(e.target.value)}
                   style={{ width: '100%' }}
                 />
               </div>
+
+              {crawlMode === 'deep' && (
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                    Maximum Pages to Crawl
+                  </label>
+                  <select
+                    value={maxPages}
+                    onChange={(e) => setMaxPages(parseInt(e.target.value))}
+                    style={{ width: '100%' }}
+                  >
+                    <option value={10}>Up to 10 Internal Pages</option>
+                    <option value={15}>Up to 15 Internal Pages (Recommended)</option>
+                    <option value={25}>Up to 25 Internal Pages (Thorough)</option>
+                    <option value={50}>Up to 50 Internal Pages (Large Website)</option>
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
@@ -534,12 +600,25 @@ export default function KnowledgeTab({
               )}
 
               {crawlResult && (
-                <div className="clean-card" style={{ padding: '14px', background: 'var(--status-emerald-bg)', borderColor: 'var(--status-emerald-border)', color: 'var(--status-emerald-text)', fontSize: '13px' }}>
-                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <div className="clean-card" style={{ padding: '16px', background: 'var(--status-emerald-bg)', borderColor: 'var(--status-emerald-border)', color: 'var(--status-emerald-text)', fontSize: '13px' }}>
+                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                     <CheckCircle2 size={16} /> Crawl Completed Successfully!
                   </div>
-                  <div>Page Title: <strong>{crawlResult.title}</strong></div>
-                  <div>Indexed <strong>{crawlResult.chunks_indexed}</strong> knowledge chunks ({crawlResult.total_characters} characters) into vector database.</div>
+                  <div>
+                    {crawlResult.pages_crawled && crawlResult.pages_crawled > 1 ? (
+                      <>Discovered and indexed <strong>{crawlResult.pages_crawled} internal pages</strong> ({crawlResult.chunks_indexed} vector chunks).</>
+                    ) : (
+                      <>Indexed <strong>{crawlResult.chunks_indexed} knowledge chunks</strong> ({crawlResult.total_characters} characters).</>
+                    )}
+                  </div>
+                  {crawlResult.pages_list && crawlResult.pages_list.length > 1 && (
+                    <div style={{ marginTop: '10px', maxHeight: '100px', overflowY: 'auto', background: 'rgba(255,255,255,0.6)', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', color: 'var(--text-primary)' }}>
+                      <strong>Crawled URLs:</strong>
+                      {crawlResult.pages_list.map((u, i) => (
+                        <div key={i} style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>• {u}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -560,11 +639,11 @@ export default function KnowledgeTab({
                 >
                   {crawling ? (
                     <>
-                      <RefreshCw size={14} className="animate-spin" /> Crawling & Indexing...
+                      <RefreshCw size={14} className="animate-spin" /> {crawlMode === 'deep' ? `Deep Crawling Website...` : `Crawling & Indexing...`}
                     </>
                   ) : (
                     <>
-                      <Sparkles size={15} /> Start Auto-Crawl
+                      <Sparkles size={15} /> {crawlMode === 'deep' ? 'Start Deep Crawl' : 'Start Auto-Crawl'}
                     </>
                   )}
                 </button>

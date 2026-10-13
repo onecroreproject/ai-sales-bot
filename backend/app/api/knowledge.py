@@ -140,6 +140,8 @@ from sqlalchemy import select
 class CrawlUrlRequest(BaseModel):
     url: str = Field(..., min_length=4)
     product_id: int | None = None
+    crawl_mode: str = "single"  # "single" | "deep"
+    max_pages: int = 15
 
 
 class ResolveQueryRequest(BaseModel):
@@ -164,6 +166,8 @@ async def crawl_website_url_api(
             url=payload.url,
             product_id=payload.product_id,
             api_key=api_key,
+            crawl_mode=payload.crawl_mode,
+            max_pages=payload.max_pages,
         )
         return result
     except ValueError as e:

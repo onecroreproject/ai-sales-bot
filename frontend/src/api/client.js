@@ -118,7 +118,8 @@ export const api = {
   setConversationMode: (sessionId, mode) => request(`/api/v1/chat/conversations/${sessionId}/mode`, { method: 'POST', body: JSON.stringify({ mode }) }),
 
   // Phase 3: Auto-Crawl & Unanswered Queries
-  crawlWebsite: (url, productId) => request('/api/v1/knowledge/crawl', { method: 'POST', body: JSON.stringify({ url, product_id: productId ? parseInt(productId) : null }) }),
+  crawlUrl: (url, productId, crawlMode = 'single', maxPages = 15) => request('/api/v1/knowledge/crawl', { method: 'POST', body: JSON.stringify({ url, product_id: productId ? parseInt(productId) : null, crawl_mode: crawlMode, max_pages: parseInt(maxPages) }) }),
+  crawlWebsite: (url, productId, crawlMode = 'single', maxPages = 15) => request('/api/v1/knowledge/crawl', { method: 'POST', body: JSON.stringify({ url, product_id: productId ? parseInt(productId) : null, crawl_mode: crawlMode, max_pages: parseInt(maxPages) }) }),
   getUnansweredQueries: (status) => request(`/api/v1/knowledge/unanswered-queries${status ? `?status=${status}` : ''}`),
   resolveUnansweredQuery: (queryId, answer, productId) => request(`/api/v1/knowledge/unanswered-queries/${queryId}/resolve`, { method: 'POST', body: JSON.stringify({ answer, product_id: productId ? parseInt(productId) : null }) }),
   dismissUnansweredQuery: (queryId) => request(`/api/v1/knowledge/unanswered-queries/${queryId}/dismiss`, { method: 'POST' }),
