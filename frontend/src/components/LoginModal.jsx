@@ -317,7 +317,7 @@ export default function LoginModal({ onLogin, onRegister }) {
               padding: '4px',
               borderRadius: '9999px',
               border: '1px solid var(--border-subtle)',
-              marginBottom: '28px'
+              marginBottom: '20px'
             }}>
               <button
                 type="button"
@@ -359,6 +359,42 @@ export default function LoginModal({ onLogin, onRegister }) {
               </button>
             </div>
           )}
+
+          {/* Quick Demo Credentials Pill */}
+          {mode === 'login' && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              background: 'var(--bg-surface-subtle)',
+              border: '1px solid var(--border-subtle)',
+              marginBottom: '20px',
+              fontSize: '12px'
+            }}>
+              <span style={{ color: 'var(--text-muted)' }}>Super Admin Demo:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('superadmin@platform.com');
+                  setPassword('adminpass123');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--brand-primary)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline'
+                }}
+              >
+                Auto-Fill Super Admin
+              </button>
+            </div>
+          )}
+
 
           {/* Clean Alert Banners */}
           {error && (

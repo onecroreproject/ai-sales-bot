@@ -127,10 +127,31 @@ async def startup_db_init():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """))
+
+            # Ensure Root Platform Company #1 exists
+            conn.execute(text("""
+                INSERT INTO companies (id, name, website, description, is_active, is_verified)
+                VALUES (1, 'Super Admin HQ', 'https://aisalesbot.platform', 'Root Platform Administration Workspace', TRUE, TRUE)
+                ON CONFLICT (id) DO NOTHING;
+            """))
+
+            # Ensure Default Super Admin User exists
+            from app.core.security import hash_password
+            admin_hash = hash_password(settings.SUPERADMIN_PASSWORD)
+            conn.execute(
+                text("""
+                    INSERT INTO users (company_id, email, hashed_password, is_active, email_verified)
+                    VALUES (1, :email, :password, TRUE, TRUE)
+                    ON CONFLICT (email) DO NOTHING;
+                """),
+                {"email": settings.SUPERADMIN_EMAIL, "password": admin_hash}
+            )
+
             conn.commit()
-            logger.info("Successfully ensured database schemas are up to date.")
+            logger.info("Successfully ensured database schemas and superadmin user are seeded.")
     except Exception as e:
         logger.warning(f"DB startup migration note: {e}")
+
 
 # Include Routers
 from app.api.system import router as system_router
