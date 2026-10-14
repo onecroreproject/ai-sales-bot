@@ -8,6 +8,12 @@ class CompanyCreate(BaseModel):
     is_verified: bool = False
 
 
+class TestLLMRequest(BaseModel):
+    provider: str = Field(default="openai")
+    model: str | None = None
+    api_key: str | None = None
+
+
 class CompanyUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=200)
     website: str | None = None

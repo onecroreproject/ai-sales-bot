@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Building2, Key, Save, Check, Eye, EyeOff, Sparkles, Shield, Cpu } from 'lucide-react';
+import { Settings, Building2, Key, Save, Check, Eye, EyeOff, Sparkles, Shield, Cpu, Zap, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function SettingsTab({ company, onUpdateCompany }) {
@@ -58,11 +58,35 @@ export default function SettingsTab({ company, onUpdateCompany }) {
   const [customInstructions, setCustomInstructions] = useState(company?.custom_instructions || '');
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState(null);
 
   const handleProviderChange = (newProvider) => {
     setLlmProvider(newProvider);
+    setTestResult(null);
     const defaultModel = PROVIDER_MODELS[newProvider]?.[0]?.id || 'gpt-4o-mini';
     setLlmModel(defaultModel);
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setTestResult(null);
+    try {
+      const finalModel = llmModel === 'custom' ? customModelInput.trim() : llmModel;
+      const res = await api.testLlmConnection({
+        provider: llmProvider,
+        model: finalModel,
+        api_key: llmApiKey ? llmApiKey.trim() : null,
+      });
+      setTestResult(res);
+    } catch (err) {
+      setTestResult({
+        success: false,
+        error: err.message || 'Connection test failed. Please verify your credentials and network connection.',
+      });
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -199,7 +223,10 @@ export default function SettingsTab({ company, onUpdateCompany }) {
                 </label>
                 <select
                   value={llmModel}
-                  onChange={(e) => setLlmModel(e.target.value)}
+                  onChange={(e) => {
+                    setLlmModel(e.target.value);
+                    setTestResult(null);
+                  }}
                   style={{ width: '100%' }}
                 >
                   {(PROVIDER_MODELS[llmProvider] || PROVIDER_MODELS.openai).map(m => (
@@ -218,7 +245,10 @@ export default function SettingsTab({ company, onUpdateCompany }) {
                   type="text"
                   required
                   value={customModelInput}
-                  onChange={(e) => setCustomModelInput(e.target.value)}
+                  onChange={(e) => {
+                    setCustomModelInput(e.target.value);
+                    setTestResult(null);
+                  }}
                   placeholder={llmProvider === 'nvidia' ? "meta/llama-3.3-70b-instruct or deepseek-ai/deepseek-r1" : "e.g. mistral-large-latest"}
                   style={{ width: '100%' }}
                 />
@@ -233,7 +263,10 @@ export default function SettingsTab({ company, onUpdateCompany }) {
                 <input 
                   type={showApiKey ? 'text' : 'password'} 
                   value={llmApiKey} 
-                  onChange={(e) => setLlmApiKey(e.target.value)} 
+                  onChange={(e) => {
+                    setLlmApiKey(e.target.value);
+                    setTestResult(null);
+                  }} 
                   placeholder={
                     llmProvider === 'openai' ? 'sk-proj-...' :
                     llmProvider === 'nvidia' ? 'nvapi-...' :
@@ -295,6 +328,89 @@ export default function SettingsTab({ company, onUpdateCompany }) {
                     ? 'Enter your NVIDIA NGC key (starts with nvapi-). Click "Save Workspace Settings" below to apply.' 
                     : 'Your API key is securely encrypted and used exclusively for your live chatbot.'}
                 </p>
+              </div>
+
+              {/* 1-Click Test Connection Action & Live Handshake Feedback */}
+              <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={handleTestConnection}
+                      disabled={testingConnection}
+                      className="btn btn-secondary"
+                      style={{
+                        fontSize: '13px',
+                        padding: '8px 16px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        borderRadius: '9px',
+                        background: 'var(--bg-surface-subtle)',
+                        cursor: testingConnection ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {testingConnection ? (
+                        <>
+                          <RefreshCw size={15} style={{ animation: 'spin 0.8s linear infinite' }} />
+                          <span>Pinging {llmProvider.toUpperCase()}...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={15} color="#eab308" />
+                          <span>Test Model & Key Connection</span>
+                        </>
+                      )}
+                    </button>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      1-token test handshake to confirm readiness
+                    </span>
+                  </div>
+
+                  {testResult?.success && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', fontSize: '12.5px', fontWeight: 600 }}>
+                      <CheckCircle2 size={16} color="#059669" />
+                      <span>Ready ({testResult.latency_ms}ms)</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Diagnostic Result Banner */}
+                {testResult && (
+                  <div 
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '10px',
+                      background: testResult.success ? 'rgba(16, 185, 129, 0.07)' : 'rgba(239, 68, 68, 0.07)',
+                      border: `1px solid ${testResult.success ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)'}`,
+                      fontSize: '13px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: testResult.success ? '#047857' : '#b91c1c' }}>
+                      {testResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                      <span>{testResult.success ? 'Handshake Successful — Model is Live!' : 'Connection Handshake Failed'}</span>
+                    </div>
+
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '12.5px', lineHeight: 1.45 }}>
+                      {testResult.success ? (
+                        <div>
+                          {testResult.message}
+                          <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                            Provider: {testResult.provider} | Model: {testResult.model} | Response: "{testResult.sample_reply}"
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <strong>Diagnosis:</strong> {testResult.error}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -6,7 +6,8 @@ from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.database.connection import get_db
 from app.models.user import User
-from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate, TestLLMRequest
+from app.ai.llm import test_llm_connection
 from app.services.company_service import (
     create_company,
     get_companies,
@@ -58,6 +59,31 @@ async def get_my_company_api(
     if company is None:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
+
+
+@router.post(
+    "/test-llm",
+)
+async def test_company_llm(
+    payload: TestLLMRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Test and verify connectivity, key validity, and model responsiveness for the company's AI settings.
+    If api_key is omitted in the request, falls back to the company's stored key.
+    """
+    api_key = payload.api_key
+    if not api_key:
+        company = await get_company(db, current_user.company_id)
+        if company and company.llm_api_key:
+            api_key = company.llm_api_key
+
+    return await test_llm_connection(
+        api_key=api_key,
+        provider=payload.provider,
+        model=payload.model,
+    )
 
 
 @router.get(

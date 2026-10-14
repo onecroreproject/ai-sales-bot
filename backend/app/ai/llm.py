@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import time
 from typing import Any
 import openai
 from openai import AsyncOpenAI
@@ -227,3 +228,109 @@ async def generate_response(
 ) -> SalesAssistantResponse:
     parsed_response, _ = await generate_response_with_usage(question, context, history, api_key)
     return parsed_response
+
+
+async def test_llm_connection(
+    api_key: str | None = None,
+    provider: str = "openai",
+    model: str | None = None,
+) -> dict[str, Any]:
+    """
+    Sends a lightweight test ping to the specified LLM provider and model to verify
+    credentials, network connectivity, and model availability.
+    """
+    provider_name = (provider or "openai").lower()
+
+    # Determine fallback target model
+    if not model or model == "custom":
+        if provider_name in ("nvidia", "nvidia_nim"):
+            target_model = "openai/gpt-oss-20b"
+        elif provider_name == "groq":
+            target_model = "llama-3.3-70b-versatile"
+        elif provider_name == "deepseek":
+            target_model = "deepseek-chat"
+        elif provider_name == "openrouter":
+            target_model = "meta-llama/llama-3.3-70b-instruct"
+        else:
+            target_model = settings.OPENAI_MODEL
+    else:
+        target_model = model
+
+    key_to_use = api_key
+    if not key_to_use and provider_name == "openai":
+        key_to_use = settings.OPENAI_API_KEY
+
+    if not key_to_use:
+        return {
+            "success": False,
+            "provider": provider_name,
+            "model": target_model,
+            "error": f"Missing API Key. Please enter your {provider_name.upper()} API key to test the connection.",
+        }
+
+    client = _get_async_client(api_key=key_to_use, provider=provider_name)
+    start_time = time.perf_counter()
+
+    try:
+        response = await client.chat.completions.create(
+            model=target_model,
+            messages=[
+                {"role": "user", "content": "Respond with 'OK' only to verify connection."}
+            ],
+            max_tokens=10,
+            temperature=0.1,
+        )
+        latency_ms = round((time.perf_counter() - start_time) * 1000)
+        content = (response.choices[0].message.content or "OK").strip() if response.choices else "OK"
+
+        return {
+            "success": True,
+            "latency_ms": latency_ms,
+            "provider": provider_name,
+            "model": target_model,
+            "sample_reply": content,
+            "message": f"Successfully connected to {provider_name.upper()} ({target_model}) in {latency_ms}ms! Ready for production.",
+        }
+
+    except openai.AuthenticationError as e:
+        return {
+            "success": False,
+            "provider": provider_name,
+            "model": target_model,
+            "error": f"Invalid API Key (HTTP 401). Please check that your {provider_name.upper()} API key is valid and not expired.",
+        }
+    except openai.NotFoundError as e:
+        return {
+            "success": False,
+            "provider": provider_name,
+            "model": target_model,
+            "error": f"Model '{target_model}' not found on {provider_name.upper()} (HTTP 404). Please verify the model ID spelling.",
+        }
+    except openai.RateLimitError as e:
+        return {
+            "success": False,
+            "provider": provider_name,
+            "model": target_model,
+            "error": f"Quota or Rate Limit reached on {provider_name.upper()} (HTTP 429). Check your billing balance or account credits.",
+        }
+    except openai.APIConnectionError as e:
+        return {
+            "success": False,
+            "provider": provider_name,
+            "model": target_model,
+            "error": f"Network connection failed to {provider_name.upper()} endpoint. Please check connectivity or proxy settings.",
+        }
+    except openai.APIStatusError as e:
+        return {
+            "success": False,
+            "provider": provider_name,
+            "model": target_model,
+            "error": f"{provider_name.upper()} returned error {e.status_code}: {e.message}",
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "provider": provider_name,
+            "model": target_model,
+            "error": f"Connection test failed: {str(e)}",
+        }

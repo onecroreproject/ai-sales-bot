@@ -68,6 +68,7 @@ export const api = {
   createCompany: (name, website, description) => request('/api/v1/companies', { method: 'POST', body: JSON.stringify({ name, website, description }) }),
   updateCompany: (id, data) => request(`/api/v1/companies/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCompany: (id) => request(`/api/v1/companies/${id}`, { method: 'DELETE' }),
+  testLlmConnection: (data) => request('/api/v1/companies/test-llm', { method: 'POST', body: JSON.stringify(data) }),
 
   // Dashboard & Super Admin Stats
   getDashboardStats: () => request('/api/v1/dashboard/stats'),
