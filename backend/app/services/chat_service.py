@@ -104,22 +104,104 @@ async def chat(
         session_mode = "human"
 
     if session_mode == "human":
-        # Save customer message so live agent sees it in real time
-        user_message = ChatMessage(
-            session_id=session.id,
-            role="user",
-            content=message,
+        # Check if an agent has ever replied to this session
+        res_agent_msg = await db.execute(
+            select(ChatMessage).where(
+                ChatMessage.session_id == session.id,
+                ChatMessage.role == "agent",
+            )
         )
+        has_agent_replied = res_agent_msg.scalars().first() is not None
+
+        # Check if visitor already provided their email in this session
+        res_lead = await db.execute(
+            select(Lead).where(
+                Lead.company_id == company_id,
+                Lead.session_id == session.id,
+            )
+        )
+        existing_lead = res_lead.scalar_one_or_none()
+
+        # If an agent is already active in the session, continue waiting for agent replies
+        if has_agent_replied:
+            user_message = ChatMessage(
+                session_id=session.id,
+                role="user",
+                content=message,
+            )
+            db.add(user_message)
+            session.updated_at = datetime.utcnow()
+            await db.commit()
+
+            return SalesAssistantResponse(
+                answer="Your message has been sent directly to the specialist assisting you. They will reply shortly.",
+                lead_ready=False,
+                lead=None,
+            )
+
+        # -------------------------------------------------------------
+        # SMART OFFLINE FALLBACK: No live agent has joined yet
+        # -------------------------------------------------------------
+        # Check if the user is providing an email or contact in this message
+        import re
+        email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', message)
+        phone_match = re.search(r'(\+?\d[\d\s\-\(\)]{7,}\d)', message)
+
+        if email_match or phone_match:
+            captured_email = email_match.group(0) if email_match else (existing_lead.email if existing_lead else None)
+            captured_phone = phone_match.group(0) if phone_match else (existing_lead.phone if existing_lead else None)
+
+            if existing_lead:
+                if captured_email and not existing_lead.email:
+                    existing_lead.email = captured_email
+                if captured_phone and not existing_lead.phone:
+                    existing_lead.phone = captured_phone
+            else:
+                lead_data = LeadCreate(
+                    company_id=company_id,
+                    session_id=session_id,
+                    email=captured_email,
+                    phone=captured_phone,
+                    requirement=message,
+                    sentiment="Hot",
+                    intent_score=90,
+                    notes="Visitor requested human representative while team was offline.",
+                )
+                await create_lead(db=db, lead_data=lead_data)
+
+            # Revert session mode to AI so visitor can continue asking questions
+            session.mode = "ai"
+            session.updated_at = datetime.utcnow()
+
+            user_message = ChatMessage(session_id=session.id, role="user", content=message)
+            db.add(user_message)
+            await db.commit()
+
+            return SalesAssistantResponse(
+                answer=f"Thank you! Your contact details ({captured_email or captured_phone}) have been prioritized for our team. A representative will reach out to you directly.\n\nIn the meantime, feel free to ask me anything about our products, pricing, or solutions!",
+                lead_ready=False,
+                lead=None,
+            )
+
+        # If visitor just requested a human and hasn't left an email yet:
+        user_message = ChatMessage(session_id=session.id, role="user", content=message)
         db.add(user_message)
         session.updated_at = datetime.utcnow()
         await db.commit()
 
-        # Do not invoke LLM - notify customer that live agent is alerted
-        return SalesAssistantResponse(
-            answer="Connecting you with a live support representative now. A team member has been alerted and will join this session shortly.",
-            lead_ready=False,
-            lead=None,
-        )
+        if existing_lead and existing_lead.email:
+            return SalesAssistantResponse(
+                answer=f"Our live sales specialists are currently away from their desks. We have your email ({existing_lead.email}) on file and our team will follow up with you as a priority.\n\nMeanwhile, I'm here 24/7! What questions can I answer for you right now?",
+                lead_ready=False,
+                lead=None,
+            )
+        else:
+            return SalesAssistantResponse(
+                answer="Our live representatives are currently offline or assisting other clients.\n\n👉 **Please share your email address or phone number below**, and our team will get in touch with you directly.\n\nYou can also continue chatting with me—I can assist with all product details, pricing, and technical questions!",
+                lead_ready=False,
+                lead=None,
+            )
+
 
 
     # ---------------------------------------------------------
