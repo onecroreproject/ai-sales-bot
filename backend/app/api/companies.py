@@ -95,11 +95,11 @@ async def list_companies(
 ):
     try:
         return await get_companies(db)
-    except SQLAlchemyError:
+    except Exception as e:
         await db.rollback()
         raise HTTPException(
             status_code=500,
-            detail="Unable to retrieve companies",
+            detail=f"Database error: {str(e)}",
         )
 
 
