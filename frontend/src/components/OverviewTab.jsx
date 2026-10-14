@@ -68,7 +68,7 @@ export default function OverviewTab({ stats, loading, company, onNavigateTab }) 
     {
       title: 'Total Leads Captured',
       value: stats?.total_leads || 0,
-      change: '+14.2%',
+      change: 'Pipeline',
       trendUp: true,
       icon: Users,
       iconBg: 'var(--brand-light)',
@@ -78,7 +78,7 @@ export default function OverviewTab({ stats, loading, company, onNavigateTab }) 
     {
       title: 'New Leads Today',
       value: stats?.new_leads_today || 0,
-      change: '+4.5%',
+      change: 'Today',
       trendUp: true,
       icon: UserPlus,
       iconBg: 'var(--status-emerald-bg)',
@@ -97,7 +97,7 @@ export default function OverviewTab({ stats, loading, company, onNavigateTab }) 
     {
       title: 'Knowledge Chunks',
       value: stats?.total_knowledge_chunks || 0,
-      change: 'RAG Vector',
+      change: 'Vector DB',
       icon: BookOpen,
       iconBg: 'var(--status-purple-bg)',
       iconColor: 'var(--status-purple-text)',
@@ -106,7 +106,7 @@ export default function OverviewTab({ stats, loading, company, onNavigateTab }) 
     {
       title: 'Total AI Chats',
       value: (stats?.total_requests || 0).toLocaleString(),
-      change: '+18.1%',
+      change: 'Live Total',
       trendUp: true,
       icon: Activity,
       iconBg: 'var(--brand-light)',
@@ -116,7 +116,7 @@ export default function OverviewTab({ stats, loading, company, onNavigateTab }) 
     {
       title: 'Tokens Consumed',
       value: (stats?.total_tokens || 0).toLocaleString(),
-      change: 'Unmetered',
+      change: 'Usage',
       icon: Cpu,
       iconBg: 'var(--status-rose-bg)',
       iconColor: 'var(--status-rose-text)',
@@ -132,6 +132,7 @@ export default function OverviewTab({ stats, loading, company, onNavigateTab }) 
       targetTab: 'usage'
     },
   ];
+
 
   const recentItems = (stats?.recent_activities || []).filter(item => {
     if (activityFilter === 'lead') return item.type === 'lead';

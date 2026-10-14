@@ -71,12 +71,11 @@ async def register(
             "id": user.id,
             "company_id": user.company_id,
             "email": user.email,
-
             "is_active": user.is_active,
             "email_verified": user.email_verified,
-            "verification_token": user.verification_token,
-            "verification_url": verification_url,
+            "message": "Registration successful. A verification link has been sent to your email address.",
         }
+
 
     except ValueError as e:
         raise HTTPException(
@@ -120,9 +119,9 @@ async def resend_verification_api(
     await send_verification_email(user.email, verification_url)
 
     return {
-        "message": f"Verification email resent to {user.email}. Please check your inbox.",
-        "verification_url": verification_url
+        "message": f"Verification email resent to {user.email}. Please check your inbox and click the verification link.",
     }
+
 
 
 @router.get("/verify-email")

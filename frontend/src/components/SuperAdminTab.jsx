@@ -31,13 +31,13 @@ export default function SuperAdminTab() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [triggeringCrawl, setTriggeringCrawl] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [approvingId, setApprovingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [crawlMessage, setCrawlMessage] = useState('');
 
   useEffect(() => {
     fetchSuperAdminData();
   }, []);
+
 
   const fetchSuperAdminData = async () => {
     setLoading(true);
@@ -84,17 +84,7 @@ export default function SuperAdminTab() {
     }
   };
 
-  const handleApproveCompany = async (companyId) => {
-    setApprovingId(companyId);
-    try {
-      await api.updateCompany(companyId, { is_verified: true, is_active: true });
-      await fetchSuperAdminData();
-    } catch (err) {
-      alert('Failed to approve company: ' + err.message);
-    } finally {
-      setApprovingId(null);
-    }
-  };
+
 
   const handleDeleteCompany = async (companyId) => {
     if (!window.confirm('WARNING: Are you sure you want to completely DELETE this company? This will erase all their users, leads, products, and knowledge vectors immediately!')) return;
@@ -246,14 +236,15 @@ export default function SuperAdminTab() {
 
             <div className="clean-card" style={{ padding: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
               <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--status-amber-bg)', color: 'var(--status-amber-text)' }}>
-                <DollarSign size={24} />
+                <Activity size={24} />
               </div>
               <div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>EST. REVENUE</div>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>${data?.estimated_mrr || 0}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>PLATFORM LEADS</div>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>{data?.total_platform_leads || data?.total_leads || 0}</div>
               </div>
             </div>
           </div>
+
 
           {/* Tenants Management Table */}
           <div className="clean-card" style={{ overflow: 'hidden' }}>
@@ -278,15 +269,16 @@ export default function SuperAdminTab() {
                 <tr style={{ background: 'var(--bg-surface-subtle)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontWeight: 600 }}>
                   <th style={{ padding: '14px 20px' }}>ID</th>
                   <th style={{ padding: '14px 20px' }}>Company Name</th>
-                  <th style={{ padding: '14px 20px' }}>Verification Status</th>
-                  <th style={{ padding: '14px 20px' }}>Leads</th>
+                  <th style={{ padding: '14px 20px' }}>Created Date</th>
+                  <th style={{ padding: '14px 20px' }}>Leads Captured</th>
                   <th style={{ padding: '14px 20px' }}>Products</th>
+                  <th style={{ padding: '14px 20px' }}>Total Chats</th>
                   <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {companies.length === 0 ? (
-                  <tr><td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>No companies found.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>No companies found.</td></tr>
                 ) : (
                   companies.map((comp) => (
                     <tr key={comp.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -297,44 +289,26 @@ export default function SuperAdminTab() {
                         <div>{comp.name}</div>
                         {comp.website && <div style={{ fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 400 }}>{comp.website}</div>}
                       </td>
-                      <td style={{ padding: '16px 20px' }}>
-                        {comp.is_verified ? (
-                          <span className="badge badge-emerald">
-                            <CheckCircle size={12} /> APPROVED & ACTIVE
-                          </span>
-                        ) : (
-                          <span className="badge badge-amber">
-                            <Clock size={12} /> PENDING VERIFICATION
-                          </span>
-                        )}
+                      <td style={{ padding: '16px 20px', color: 'var(--text-muted)', fontSize: '12.5px' }}>
+                        {comp.created_at ? new Date(comp.created_at).toLocaleDateString() : 'Active'}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
-                        <span className="badge badge-blue">{comp.total_leads} LEADS</span>
+                        <span className="badge badge-emerald">{comp.total_leads || 0} LEADS</span>
                       </td>
                       <td style={{ padding: '16px 20px' }}>
-                        <span className="badge badge-purple">{comp.total_products} PRODUCTS</span>
+                        <span className="badge badge-purple">{comp.total_products || 0} PRODUCTS</span>
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span className="badge badge-blue">{comp.total_requests || 0} CHATS</span>
                       </td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          {!comp.is_verified ? (
-                            <button
-                              onClick={() => handleApproveCompany(comp.id)}
-                              disabled={approvingId === comp.id}
-                              className="btn-primary"
-                              style={{ padding: '6px 14px', fontSize: '12px' }}
-                            >
-                              {approvingId === comp.id ? 'Approving...' : 'Approve'}
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '6px' }}>Verified</span>
-                          )}
-
                           <button
                             onClick={() => handleDeleteCompany(comp.id)}
                             disabled={deletingId === comp.id || comp.id === 1}
                             className="btn-danger"
                             style={{ padding: '6px 10px', fontSize: '12px', opacity: comp.id === 1 ? 0.3 : 1 }}
-                            title={comp.id === 1 ? "Cannot delete super admin" : "Delete Company"}
+                            title={comp.id === 1 ? "Cannot delete root admin workspace" : "Delete Company"}
                           >
                             {deletingId === comp.id ? 'Deleting...' : <Trash2 size={13} />}
                           </button>
@@ -345,6 +319,7 @@ export default function SuperAdminTab() {
                 )}
               </tbody>
             </table>
+
           </div>
         </>
       )}

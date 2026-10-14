@@ -36,9 +36,8 @@ export default function LoginModal({ onLogin, onRegister }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [verificationUrl, setVerificationUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+
 
   // Check URL hash for password reset token
   useEffect(() => {
@@ -125,11 +124,8 @@ export default function LoginModal({ onLogin, onRegister }) {
         }
 
         try {
-          const regRes = await onRegister.registerUser(comp.id, email, password);
-          setSuccess(`Registration successful! Verification link sent to ${email}.`);
-          if (regRes?.verification_url) {
-            setVerificationUrl(regRes.verification_url);
-          }
+          await onRegister.registerUser(comp.id, email, password);
+          setSuccess(`Registration successful! Verification link sent to ${email}. Please check your inbox and click the link to activate your company workspace.`);
           setMode('login');
           setEmail('');
           setPassword('');
@@ -167,10 +163,7 @@ export default function LoginModal({ onLogin, onRegister }) {
         window.location.hash = '';
       } else if (mode === 'unverified') {
         const res = await api.resendVerification(email);
-        setSuccess(res.message || 'Verification link resent successfully!');
-        if (res.verification_url) {
-          setVerificationUrl(res.verification_url);
-        }
+        setSuccess(res.message || 'Verification link resent to your email inbox! Please check your email.');
       }
     } catch (err) {
       setError(err.message || 'Authentication failed. Please try again.');
@@ -179,24 +172,6 @@ export default function LoginModal({ onLogin, onRegister }) {
     }
   };
 
-  const handleSimulateVerification = async (url) => {
-    setVerifying(true);
-    setError('');
-    try {
-      const urlObj = new URL(url);
-      const hashParts = urlObj.hash.split('?token=');
-      const token = hashParts[1];
-      
-      const res = await api.verifyEmail(token);
-      setSuccess(res.message || 'Email verified successfully! You can now log in.');
-      setVerificationUrl('');
-      setMode('login');
-    } catch (err) {
-      setError('Email verification failed: ' + err.message);
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   return (
     <div style={{
@@ -586,35 +561,9 @@ export default function LoginModal({ onLogin, onRegister }) {
               </button>
             )}
           </form>
-
-          {/* Quick email verification simulation badge if link available */}
-          {verificationUrl && (
-            <div style={{ marginTop: '20px', padding: '14px', borderRadius: '12px', background: 'var(--status-blue-bg)', border: '1px solid var(--status-blue-border)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--status-blue-text)', marginBottom: '8px' }}>
-                Testing / Development Link:
-              </div>
-              <button
-                type="button"
-                onClick={() => handleSimulateVerification(verificationUrl)}
-                disabled={verifying}
-                style={{
-                  width: '100%',
-                  padding: '8px 14px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  background: 'var(--brand-primary)',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                {verifying ? 'Verifying...' : 'Click to Verify Email Instantly'}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
+
