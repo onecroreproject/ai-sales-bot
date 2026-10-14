@@ -12,6 +12,9 @@ class LeadCreate(BaseModel):
     company_name: str | None = None
     requirement: str | None = None
     status: str | None = "new"
+    sentiment: str | None = "Warm"
+    intent_score: int | None = 50
+    notes: str | None = None
 
 
 class LeadResponse(BaseModel):
@@ -25,6 +28,9 @@ class LeadResponse(BaseModel):
     company_name: str | None = None
     requirement: str | None = None
     status: str
+    sentiment: str | None = "Warm"
+    intent_score: int | None = 50
+    notes: str | None = None
     created_at: datetime | None = None
     location: str | None = None
     origin_domain: str | None = None
@@ -41,3 +47,6 @@ class LeadUpdate(BaseModel):
     company_name: str | None = None
     requirement: str | None = None
     status: str | None = None
+    sentiment: str | None = None
+    intent_score: int | None = None
+    notes: str | None = None

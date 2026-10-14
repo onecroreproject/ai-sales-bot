@@ -84,9 +84,25 @@ async def chat(
             session.user_agent = user_agent
 
     # ---------------------------------------------------------
-    # 2. Check for Live Human Takeover Mode
+    # 2. Check for Live Human Takeover Mode or Handover Request
     # ---------------------------------------------------------
     session_mode = getattr(session, "mode", "ai") or "ai"
+
+    # Auto-detect intent to speak with a human
+    lower_msg = message.lower().strip()
+    human_handover_phrases = [
+        "talk to a human", "talk to human", "speak to human", "speak with human",
+        "speak to a human", "talk to an agent", "talk to agent", "connect me to a representative",
+        "speak to representative", "transfer to human", "real person", "human agent",
+        "human support", "talk to representative", "contact person", "live agent"
+    ]
+    wants_human = any(phrase in lower_msg for phrase in human_handover_phrases)
+
+    if wants_human and session_mode != "human":
+        session.mode = "human"
+        session.updated_at = datetime.utcnow()
+        session_mode = "human"
+
     if session_mode == "human":
         # Save customer message so live agent sees it in real time
         user_message = ChatMessage(
@@ -98,12 +114,13 @@ async def chat(
         session.updated_at = datetime.utcnow()
         await db.commit()
 
-        # Do not invoke LLM - notify customer that live agent is active
+        # Do not invoke LLM - notify customer that live agent is alerted
         return SalesAssistantResponse(
-            answer="A live support specialist has joined this session and will reply to your message shortly.",
+            answer="Connecting you with a live support representative now. A team member has been alerted and will join this session shortly.",
             lead_ready=False,
             lead=None,
         )
+
 
     # ---------------------------------------------------------
     # 3. Load previous conversation
@@ -253,12 +270,16 @@ async def chat(
                 phone=answer.lead.phone,
                 company_name=answer.lead.company_name,
                 requirement=answer.lead.requirement,
+                sentiment=getattr(answer.lead, "sentiment", None) or answer.customer_sentiment or "Warm",
+                intent_score=getattr(answer.lead, "intent_score", None) or answer.intent_score or 75,
+                notes=getattr(answer.lead, "notes", None),
             )
 
             await create_lead(
                 db=db,
                 lead_data=lead_data,
             )
+
 
     # ---------------------------------------------------------
     # 9. Save AI response

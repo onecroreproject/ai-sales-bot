@@ -178,6 +178,18 @@ async def crawl_website_url_api(
         raise HTTPException(status_code=500, detail=f"Web crawling error: {str(e)}")
 
 
+@router.post("/scheduled-crawls/run")
+async def trigger_scheduled_crawls_api(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Trigger background check & deep-crawl on companies overdue for re-indexing."""
+    from app.services.crawler_service import run_scheduled_crawls
+    res = await run_scheduled_crawls(db)
+    return {"message": "Scheduled re-crawling completed", "processed": res}
+
+
+
 from fastapi import UploadFile, File, Form
 from app.services.document_parser import parse_and_index_document
 

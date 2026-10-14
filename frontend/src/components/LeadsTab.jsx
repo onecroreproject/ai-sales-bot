@@ -333,6 +333,7 @@ export default function LeadsTab({
               <th style={{ padding: '14px 18px' }}>Contact Details</th>
               <th style={{ padding: '14px 18px' }}>Company & Requirement</th>
               <th style={{ padding: '14px 18px' }}>Origin & Location</th>
+              <th style={{ padding: '14px 18px' }}>AI Sentiment & Intent</th>
               <th style={{ padding: '14px 18px' }}>Captured Date</th>
               <th style={{ padding: '14px 18px' }}>Status</th>
               <th style={{ padding: '14px 18px', textAlign: 'right' }}>Actions</th>
@@ -340,10 +341,10 @@ export default function LeadsTab({
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading leads pipeline...</td></tr>
+              <tr><td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading leads pipeline...</td></tr>
             ) : filteredLeads.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <TrendingUp size={36} style={{ opacity: 0.3, margin: '0 auto 10px auto', display: 'block' }} />
                   <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>No leads found</div>
                   <div style={{ fontSize: '13px', marginTop: '4px' }}>
@@ -361,6 +362,8 @@ export default function LeadsTab({
             ) : (
               filteredLeads.map((lead) => {
                 const initials = (lead.name || 'A').split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
+                const sentiment = lead.sentiment || 'Warm';
+                const score = lead.intent_score || 50;
                 return (
                   <tr key={lead.id} style={{ borderBottom: '1px solid var(--border-glass)', transition: 'background 0.2s ease' }}>
                     
@@ -449,6 +452,28 @@ export default function LeadsTab({
                       </div>
                     </td>
 
+                    {/* 4b. AI Sentiment & Intent Score */}
+                    <td style={{ padding: '14px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className={`badge ${
+                          sentiment.toLowerCase() === 'hot' ? 'badge-rose' :
+                          sentiment.toLowerCase() === 'warm' ? 'badge-amber' : 'badge-blue'
+                        }`} style={{ fontWeight: 700 }}>
+                          🔥 {sentiment.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {score}%
+                        </span>
+                      </div>
+                      <div style={{ width: '80px', height: '4px', background: 'var(--bg-secondary)', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
+                        <div style={{ 
+                          width: `${score}%`, 
+                          height: '100%', 
+                          background: sentiment.toLowerCase() === 'hot' ? '#f43f5e' : sentiment.toLowerCase() === 'warm' ? '#f59e0b' : '#3b82f6' 
+                        }} />
+                      </div>
+                    </td>
+
                     {/* 5. Date */}
                     <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
@@ -474,7 +499,7 @@ export default function LeadsTab({
                           onClick={() => setSelectedLead(lead)} 
                           className="btn-secondary" 
                           style={{ padding: '6px 10px' }} 
-                          title="View all 8 collected fields"
+                          title="View all collected fields"
                         >
                           <Eye size={15} />
                         </button>
@@ -495,6 +520,7 @@ export default function LeadsTab({
           </tbody>
         </table>
       </div>
+
 
       {/* MODAL 1: Lead Details Drawer / Modal */}
       {selectedLead && (

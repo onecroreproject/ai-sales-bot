@@ -24,12 +24,18 @@ class LeadInfo(BaseModel):
     phone: str | None = Field(default=None, description="Phone number of the prospect")
     company_name: str | None = Field(default=None, description="Company name of the prospect")
     requirement: str | None = Field(default=None, description="Specific business or product requirement")
+    sentiment: str | None = Field(default="Warm", description="Hot, Warm, or Cold based on buyer interest and urgency")
+    intent_score: int | None = Field(default=75, description="0 to 100 purchasing intent probability score")
+    notes: str | None = Field(default=None, description="Key qualification insights or budget remarks")
 
 
 class SalesAssistantResponse(BaseModel):
     answer: str = Field(..., description="Helpful, professional response to the customer")
     lead_ready: bool = Field(default=False, description="True only when all five lead fields are captured")
     lead: LeadInfo | None = Field(default=None, description="Lead details object when lead_ready is true")
+    customer_sentiment: str | None = Field(default="Warm", description="Hot, Warm, or Cold assessment of current conversation tone")
+    intent_score: int | None = Field(default=50, description="Estimated buyer intent score 0-100")
+
 
 
 def _extract_sales_response(raw_text: str) -> SalesAssistantResponse:

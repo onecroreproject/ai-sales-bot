@@ -36,6 +36,20 @@ class Lead(Base):
         default="new",
     )
 
+    # Sentiment & Intent Scoring (Hot / Warm / Cold & 0-100 score)
+    sentiment: Mapped[str | None] = mapped_column(
+        String(20),
+        default="Warm",
+        server_default="Warm",
+    )
+
+    intent_score: Mapped[int | None] = mapped_column(
+        default=50,
+        server_default="50",
+    )
+
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
-    )
+    )

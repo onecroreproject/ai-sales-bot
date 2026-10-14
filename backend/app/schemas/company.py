@@ -30,6 +30,11 @@ class CompanyUpdate(BaseModel):
     guardrail_pii_masking: bool | None = None
     guardrail_custom_refusal: str | None = None
     guardrail_tone_strictness: str | None = None
+    webhook_url: str | None = None
+    telegram_bot_token: str | None = None
+    whatsapp_number: str | None = None
+    auto_crawl_enabled: bool | None = None
+    crawl_frequency_days: int | None = None
 
 
 class CompanyResponse(BaseModel):
@@ -49,6 +54,12 @@ class CompanyResponse(BaseModel):
     guardrail_pii_masking: bool = True
     guardrail_custom_refusal: str | None = None
     guardrail_tone_strictness: str = "standard"
+    webhook_url: str | None = None
+    telegram_bot_token: str | None = None
+    whatsapp_number: str | None = None
+    auto_crawl_enabled: bool = False
+    crawl_frequency_days: int = 7
+    last_crawled_at: str | None = None
 
     model_config = {
         "from_attributes": True

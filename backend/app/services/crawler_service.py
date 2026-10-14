@@ -230,6 +230,17 @@ async def crawl_and_index_url(
     if total_chunks_created == 0:
         raise ValueError(f"Could not extract readable text content from {clean_url}. The website may use client-side rendering or block automated scrapers.")
 
+    # Update company last_crawled_at timestamp
+    try:
+        from app.models.company import Company
+        from datetime import datetime
+        res_comp = await db.execute(select(Company).where(Company.id == company_id))
+        comp = res_comp.scalar_one_or_none()
+        if comp:
+            comp.last_crawled_at = datetime.utcnow()
+    except Exception:
+        pass
+
     await db.commit()
 
     return {
@@ -241,3 +252,43 @@ async def crawl_and_index_url(
         "chunks_indexed": total_chunks_created,
         "total_characters": total_characters,
     }
+
+
+async def run_scheduled_crawls(db: AsyncSession) -> list[dict]:
+    """Scans all companies with auto_crawl_enabled and triggers deep crawls for overdue websites."""
+    from app.models.company import Company
+    from datetime import datetime, timedelta
+
+    res = await db.execute(
+        select(Company).where(
+            Company.auto_crawl_enabled == True,
+            Company.website != None,
+            Company.is_active == True,
+        )
+    )
+    companies = res.scalars().all()
+    results = []
+    now = datetime.utcnow()
+
+    for comp in companies:
+        if not comp.website:
+            continue
+        freq_days = comp.crawl_frequency_days or 7
+        is_overdue = (comp.last_crawled_at is None) or (now - comp.last_crawled_at > timedelta(days=freq_days))
+
+        if is_overdue:
+            try:
+                crawl_res = await crawl_and_index_url(
+                    db=db,
+                    company_id=comp.id,
+                    url=comp.website,
+                    api_key=comp.llm_api_key,
+                    crawl_mode="deep",
+                    max_pages=15,
+                )
+                results.append({"company_id": comp.id, "status": "crawled", "pages": crawl_res["pages_crawled"]})
+            except Exception as e:
+                results.append({"company_id": comp.id, "status": "error", "detail": str(e)})
+
+    return results
+

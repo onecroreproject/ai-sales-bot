@@ -176,21 +176,32 @@ Return a structured response containing exactly:
 answer
 lead_ready
 lead
+customer_sentiment
+intent_score
 
 answer:
 - Natural-language response to the customer.
 - Keep it concise and professional.
 - Ask only for missing lead information.
 
+customer_sentiment:
+- "Hot" if the visitor has immediate budget/readiness to buy or ask for checkout/proposal.
+- "Warm" if exploring solutions, interested, or asking in-depth questions.
+- "Cold" if browsing casually, skeptical, or disengaged.
+
+intent_score:
+- Integer between 0 and 100 reflecting buying intent probability.
+
 lead_ready:
 - true only when all five lead fields are available.
 - otherwise false.
 
 lead:
-- Include all five fields when lead_ready is true.
+- Include all five fields when lead_ready is true: name, email, phone, company_name, requirement, sentiment ("Hot"/"Warm"/"Cold"), intent_score (0-100), notes (concise qualification summary).
 - Return null when lead_ready is false.
 
 Never invent missing information.
+
 
 PRODUCT KNOWLEDGE:
 

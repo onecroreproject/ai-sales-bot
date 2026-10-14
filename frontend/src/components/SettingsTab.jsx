@@ -89,6 +89,12 @@ export default function SettingsTab({ company, onUpdateCompany }) {
     }
   };
 
+  const [webhookUrl, setWebhookUrl] = useState(company?.webhook_url || '');
+  const [telegramToken, setTelegramToken] = useState(company?.telegram_bot_token || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(company?.whatsapp_number || '');
+  const [autoCrawlEnabled, setAutoCrawlEnabled] = useState(company?.auto_crawl_enabled || false);
+  const [crawlFrequencyDays, setCrawlFrequencyDays] = useState(company?.crawl_frequency_days || 7);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -103,7 +109,12 @@ export default function SettingsTab({ company, onUpdateCompany }) {
           llm_model: finalModel || 'gpt-4o-mini',
           llm_api_key: llmApiKey ? llmApiKey.trim() : null,
           bot_persona: botPersona,
-          custom_instructions: customInstructions ? customInstructions.trim() : null
+          custom_instructions: customInstructions ? customInstructions.trim() : null,
+          webhook_url: webhookUrl ? webhookUrl.trim() : null,
+          telegram_bot_token: telegramToken ? telegramToken.trim() : null,
+          whatsapp_number: whatsappNumber ? whatsappNumber.trim() : null,
+          auto_crawl_enabled: autoCrawlEnabled,
+          crawl_frequency_days: parseInt(crawlFrequencyDays) || 7,
         });
         if (onUpdateCompany) {
           onUpdateCompany(updated);
@@ -117,6 +128,7 @@ export default function SettingsTab({ company, onUpdateCompany }) {
       setSaving(false);
     }
   };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '860px' }}>
@@ -464,8 +476,119 @@ export default function SettingsTab({ company, onUpdateCompany }) {
           </div>
         </div>
 
+        {/* Section 4: Multi-Channel Integrations & CRM Webhooks */}
+        <div className="clean-card" style={{ padding: '24px' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--status-blue-bg)', color: 'var(--status-blue-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Zap size={17} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Multi-Channel & CRM Integrations</h2>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Forward real-time leads to external endpoints or connect messaging bots</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                CRM Webhook URL (Zapier, Make, HubSpot, Custom API)
+              </label>
+              <input
+                type="url"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://hooks.zapier.com/hooks/catch/..."
+                style={{ width: '100%' }}
+              />
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                When a lead is captured, a JSON payload with prospect name, email, phone, requirements, and AI intent score is automatically POSTed here.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Telegram Bot Token
+                </label>
+                <input
+                  type="password"
+                  value={telegramToken}
+                  onChange={(e) => setTelegramToken(e.target.value)}
+                  placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQR"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  WhatsApp Business Number
+                </label>
+                <input
+                  type="text"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  placeholder="e.g. +14155552671"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 5: Scheduled Periodic Auto-Crawling */}
+        <div className="clean-card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--status-emerald-bg)', color: 'var(--status-emerald-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <RefreshCw size={17} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Scheduled Periodic Auto-Crawling</h2>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Keep your AI updated as your website changes automatically</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input
+                type="checkbox"
+                id="autoCrawlToggle"
+                checked={autoCrawlEnabled}
+                onChange={(e) => setAutoCrawlEnabled(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <label htmlFor="autoCrawlToggle" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
+                Enable automated periodic deep-crawling of company website ({website || 'URL not set'})
+              </label>
+            </div>
+
+            {autoCrawlEnabled && (
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Crawl Frequency (Every N Days)
+                </label>
+                <select
+                  value={crawlFrequencyDays}
+                  onChange={(e) => setCrawlFrequencyDays(e.target.value)}
+                  style={{ width: '220px' }}
+                >
+                  <option value="1">Daily (Every 24 hours)</option>
+                  <option value="3">Every 3 Days</option>
+                  <option value="7">Weekly (Every 7 Days - Recommended)</option>
+                  <option value="14">Bi-Weekly (Every 14 Days)</option>
+                  <option value="30">Monthly (Every 30 Days)</option>
+                </select>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  The background worker will automatically crawl internal pages and refresh knowledge vectors on schedule.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Save Bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', paddingTop: '4px' }}>
+
           <button type="submit" className="btn-primary" disabled={saving}>
             {saved ? <Check size={16} /> : <Save size={16} />}
             {saving ? 'Saving Changes...' : saved ? 'Saved Successfully!' : 'Save Workspace Settings'}

@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.widget_config import WidgetConfig
 from app.models.token_usage import TokenUsage
 from app.models.unanswered_query import UnansweredQuery
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "Company",
@@ -20,4 +21,5 @@ __all__ = [
     "WidgetConfig",
     "TokenUsage",
     "UnansweredQuery",
-]
+    "AuditLog",
+]

@@ -22,20 +22,40 @@ def verify_password(
     )
 
 
+
+# In-memory revoked token set (can be backed by Redis in distributed environments)
+_REVOKED_TOKENS: set[str] = set()
+
+
+def revoke_token(token: str) -> None:
+    """Revoke an active token so it cannot be used again."""
+    _REVOKED_TOKENS.add(token.strip())
+
+
+def is_token_revoked(token: str) -> bool:
+    """Check if a token has been explicitly revoked."""
+    return token.strip() in _REVOKED_TOKENS
+
+
 def create_access_token(
     user_id: int,
     company_id: int,
+    expires_delta: timedelta | None = None,
 ) -> str:
-
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
+    """Generate a signed JWT token with standard claims."""
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     payload = {
         "sub": str(user_id),
         "user_id": user_id,
         "company_id": company_id,
-        "exp": expire,
+        "exp": int(expire.timestamp()),
+        "iat": int(datetime.now(timezone.utc).timestamp()),
     }
 
     return jwt.encode(
@@ -46,6 +66,10 @@ def create_access_token(
 
 
 def decode_access_token(token: str) -> dict:
+    """Decode and validate a signed JWT token."""
+    if is_token_revoked(token):
+        raise ValueError("Token has been revoked")
+
     try:
         payload = jwt.decode(
             token,
@@ -65,4 +89,4 @@ def decode_access_token(token: str) -> dict:
         }
 
     except (JWTError, ValueError, TypeError):
-        raise ValueError("Invalid or expired token")
+        raise ValueError("Invalid or expired token")

@@ -124,4 +124,11 @@ export const api = {
   getUnansweredQueries: (status) => request(`/api/v1/knowledge/unanswered-queries${status ? `?status=${status}` : ''}`),
   resolveUnansweredQuery: (queryId, answer, productId) => request(`/api/v1/knowledge/unanswered-queries/${queryId}/resolve`, { method: 'POST', body: JSON.stringify({ answer, product_id: productId ? parseInt(productId) : null }) }),
   dismissUnansweredQuery: (queryId) => request(`/api/v1/knowledge/unanswered-queries/${queryId}/dismiss`, { method: 'POST' }),
+  triggerScheduledCrawls: () => request('/api/v1/knowledge/scheduled-crawls/run', { method: 'POST' }),
+
+  // System Health & Audit Logs (Super Admin)
+  getSystemHealth: () => request('/api/v1/system/health-monitor'),
+  getAuditLogs: (action, limit = 50) => request(`/api/v1/system/audit-logs?limit=${limit}${action ? `&action=${action}` : ''}`),
+  logout: () => request('/api/v1/auth/logout', { method: 'POST' }).catch(() => ({})),
 };
+

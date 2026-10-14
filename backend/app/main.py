@@ -92,6 +92,30 @@ async def startup_db_init():
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token VARCHAR(255);"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_expires_at TIMESTAMP;"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS webhook_url VARCHAR(500);"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS telegram_bot_token VARCHAR(255);"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS auto_crawl_enabled BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS crawl_frequency_days INTEGER DEFAULT 7;"))
+            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS last_crawled_at TIMESTAMP;"))
+
+            conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'Warm';"))
+            conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS intent_score INTEGER DEFAULT 50;"))
+            conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS notes TEXT;"))
+
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id SERIAL PRIMARY KEY,
+                    company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+                    user_email VARCHAR(255),
+                    action VARCHAR(100) NOT NULL,
+                    resource VARCHAR(100) NOT NULL,
+                    details TEXT,
+                    ip_address VARCHAR(100),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """))
+
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS unanswered_queries (
                     id SERIAL PRIMARY KEY,
@@ -109,6 +133,8 @@ async def startup_db_init():
         logger.warning(f"DB startup migration note: {e}")
 
 # Include Routers
+from app.api.system import router as system_router
+
 app.include_router(products_router)
 app.include_router(companies_router)
 app.include_router(knowledge_router)
@@ -119,6 +145,8 @@ app.include_router(auth_router)
 app.include_router(widget_router)
 app.include_router(usage_router)
 app.include_router(dashboard_router)
+app.include_router(system_router)
+
 
 
 @app.get("/")

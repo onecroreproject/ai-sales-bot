@@ -36,6 +36,9 @@ async def create_lead(
         company_name=lead_data.company_name,
         requirement=lead_data.requirement,
         status=lead_data.status or "new",
+        sentiment=lead_data.sentiment or "Warm",
+        intent_score=lead_data.intent_score or 50,
+        notes=lead_data.notes,
     )
 
     try:
@@ -49,7 +52,44 @@ async def create_lead(
             detail="Failed to create lead",
         )
 
+    # ---------------------------------------------------------
+    # MULTI-CHANNEL WEBHOOK DISPATCH (HubSpot, Zapier, Make, CRM)
+    # ---------------------------------------------------------
+    try:
+        from app.models.company import Company
+        import httpx
+        import asyncio
+
+        res_comp = await db.execute(select(Company).where(Company.id == lead.company_id))
+        comp = res_comp.scalar_one_or_none()
+        if comp and comp.webhook_url:
+            async def _post_webhook(url: str, payload: dict):
+                try:
+                    async with httpx.AsyncClient(timeout=8.0) as client:
+                        await client.post(url, json=payload)
+                except Exception:
+                    pass
+
+            webhook_payload = {
+                "event": "lead.created",
+                "lead_id": lead.id,
+                "company_id": lead.company_id,
+                "company_name": comp.name,
+                "name": lead.name,
+                "email": lead.email,
+                "phone": lead.phone,
+                "prospect_company": lead.company_name,
+                "requirement": lead.requirement,
+                "sentiment": lead.sentiment,
+                "intent_score": lead.intent_score,
+                "created_at": lead.created_at.isoformat() if lead.created_at else None,
+            }
+            asyncio.create_task(_post_webhook(comp.webhook_url, webhook_payload))
+    except Exception:
+        pass
+
     return lead
+
 
 
 # ---------------------------------------------------------
@@ -79,6 +119,9 @@ async def get_leads(
                 "company_name": lead.company_name,
                 "requirement": lead.requirement,
                 "status": lead.status,
+                "sentiment": getattr(lead, "sentiment", "Warm") or "Warm",
+                "intent_score": getattr(lead, "intent_score", 50) or 50,
+                "notes": getattr(lead, "notes", None),
                 "created_at": lead.created_at,
                 "location": loc or "Online Visitor",
                 "origin_domain": domain or "Direct / Widget",
@@ -124,6 +167,9 @@ async def get_lead(
         "company_name": lead.company_name,
         "requirement": lead.requirement,
         "status": lead.status,
+        "sentiment": getattr(lead, "sentiment", "Warm") or "Warm",
+        "intent_score": getattr(lead, "intent_score", 50) or 50,
+        "notes": getattr(lead, "notes", None),
         "created_at": lead.created_at,
         "location": loc or "Online Visitor",
         "origin_domain": domain or "Direct / Widget",
@@ -139,7 +185,19 @@ async def update_lead(
     company_id: int,
     lead_data: LeadUpdate,
 ):
-    lead = await get_lead(db, lead_id, company_id)
+    # Fetch ORM lead instance directly
+    res = await db.execute(
+        select(Lead).where(
+            Lead.id == lead_id,
+            Lead.company_id == company_id,
+        )
+    )
+    lead = res.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lead not found",
+        )
 
     update_data = lead_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -155,7 +213,8 @@ async def update_lead(
             detail="Failed to update lead",
         )
 
-    return lead
+    # Return enriched representation
+    return await get_lead(db, lead_id, company_id)
 
 
 # ---------------------------------------------------------
@@ -166,7 +225,18 @@ async def delete_lead(
     lead_id: int,
     company_id: int,
 ) -> bool:
-    lead = await get_lead(db, lead_id, company_id)
+    res = await db.execute(
+        select(Lead).where(
+            Lead.id == lead_id,
+            Lead.company_id == company_id,
+        )
+    )
+    lead = res.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lead not found",
+        )
 
     try:
         await db.delete(lead)

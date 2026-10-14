@@ -54,10 +54,24 @@ async def register(
         # Dispatch real email in background
         await send_verification_email(user.email, verification_url)
 
+        # Audit registration
+        from app.services.audit_service import record_audit_event
+        visitor_ip = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")
+        await record_audit_event(
+            db=db,
+            company_id=user.company_id,
+            action="user.registered",
+            resource="auth",
+            user_email=user.email,
+            details=f"New user registered for company {user.company_id}",
+            ip_address=visitor_ip,
+        )
+
         return {
             "id": user.id,
             "company_id": user.company_id,
             "email": user.email,
+
             "is_active": user.is_active,
             "email_verified": user.email_verified,
             "verification_token": user.verification_token,
@@ -149,16 +163,43 @@ async def login(
             password=login_data.password,
         )
 
+        # Audit login
+        from app.services.audit_service import record_audit_event
+        visitor_ip = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")
+        await record_audit_event(
+            db=db,
+            action="user.login",
+            resource="auth",
+            user_email=login_data.email,
+            details="User logged in successfully",
+            ip_address=visitor_ip,
+        )
+
         return {
             "access_token": result["access_token"],
             "token_type": result["token_type"],
         }
 
     except ValueError as e:
+        # Audit failed login
+        try:
+            from app.services.audit_service import record_audit_event
+            visitor_ip = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")
+            await record_audit_event(
+                db=db,
+                action="user.login_failed",
+                resource="auth",
+                user_email=login_data.email,
+                details=f"Failed login attempt: {str(e)}",
+                ip_address=visitor_ip,
+            )
+        except Exception:
+            pass
         raise HTTPException(
             status_code=401,
             detail=str(e),
         )
+
 
 
 @router.post("/forgot-password")
@@ -218,3 +259,17 @@ async def get_me_api(
 ):
     """Retrieve profile of currently authenticated user."""
     return current_user
+
+
+@router.post("/logout")
+async def logout_api(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Revoke active JWT token upon user logout."""
+    from app.core.security import revoke_token
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+        revoke_token(token)
+    return {"success": True, "message": "Successfully logged out and token invalidated."}
