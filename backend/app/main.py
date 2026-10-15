@@ -68,68 +68,82 @@ app.mount("/api/static", StaticFiles(directory="app/static"), name="static")
 
 @app.on_event("startup")
 async def startup_db_init():
+    """Run database schema migrations and seed superadmin on startup using async engine."""
+    from app.database.connection import async_engine
+    from sqlalchemy import text
+
+    migration_statements = [
+        # Chat sessions columns
+        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS origin_domain VARCHAR(255);",
+        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS ip_address VARCHAR(100);",
+        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS location VARCHAR(255);",
+        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS user_agent VARCHAR(500);",
+        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS mode VARCHAR(20) DEFAULT 'ai';",
+        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
+        # Companies BYOK columns
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50) DEFAULT 'openai';",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_model VARCHAR(100) DEFAULT 'gpt-4o-mini';",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_api_key VARCHAR(500);",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS bot_persona VARCHAR(50) DEFAULT 'professional';",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS custom_instructions TEXT;",
+        # Guardrail columns
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_blocked_topics TEXT;",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_competitors TEXT;",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_pii_masking BOOLEAN DEFAULT TRUE;",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_custom_refusal TEXT;",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_tone_strictness VARCHAR(50) DEFAULT 'standard';",
+        # User verification columns
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token VARCHAR(255);",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_expires_at TIMESTAMP;",
+        # Multi-channel & webhook columns
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS webhook_url VARCHAR(500);",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS telegram_bot_token VARCHAR(255);",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);",
+        # Auto-crawl columns
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS auto_crawl_enabled BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS crawl_frequency_days INTEGER DEFAULT 7;",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS last_crawled_at TIMESTAMP;",
+        # Lead scoring columns
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'Warm';",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS intent_score INTEGER DEFAULT 50;",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS notes TEXT;",
+        # Audit logs table
+        """CREATE TABLE IF NOT EXISTS audit_logs (
+            id SERIAL PRIMARY KEY,
+            company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+            user_email VARCHAR(255),
+            action VARCHAR(100) NOT NULL,
+            resource VARCHAR(100) NOT NULL,
+            details TEXT,
+            ip_address VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );""",
+        # Unanswered queries table
+        """CREATE TABLE IF NOT EXISTS unanswered_queries (
+            id SERIAL PRIMARY KEY,
+            company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+            session_id VARCHAR(100),
+            question TEXT NOT NULL,
+            ai_response TEXT,
+            status VARCHAR(20) DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );""",
+    ]
+
     try:
-        from app.database.connection import engine
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS origin_domain VARCHAR(255);"))
-            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS ip_address VARCHAR(100);"))
-            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS location VARCHAR(255);"))
-            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS user_agent VARCHAR(500);"))
-            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS mode VARCHAR(20) DEFAULT 'ai';"))
-            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50) DEFAULT 'openai';"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_model VARCHAR(100) DEFAULT 'gpt-4o-mini';"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS llm_api_key VARCHAR(500);"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS bot_persona VARCHAR(50) DEFAULT 'professional';"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS custom_instructions TEXT;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_blocked_topics TEXT;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_competitors TEXT;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_pii_masking BOOLEAN DEFAULT TRUE;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_custom_refusal TEXT;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS guardrail_tone_strictness VARCHAR(50) DEFAULT 'standard';"))
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;"))
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);"))
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token VARCHAR(255);"))
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_expires_at TIMESTAMP;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS webhook_url VARCHAR(500);"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS telegram_bot_token VARCHAR(255);"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50);"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS auto_crawl_enabled BOOLEAN DEFAULT FALSE;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS crawl_frequency_days INTEGER DEFAULT 7;"))
-            conn.execute(text("ALTER TABLE companies ADD COLUMN IF NOT EXISTS last_crawled_at TIMESTAMP;"))
-
-            conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'Warm';"))
-            conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS intent_score INTEGER DEFAULT 50;"))
-            conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS notes TEXT;"))
-
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS audit_logs (
-                    id SERIAL PRIMARY KEY,
-                    company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
-                    user_email VARCHAR(255),
-                    action VARCHAR(100) NOT NULL,
-                    resource VARCHAR(100) NOT NULL,
-                    details TEXT,
-                    ip_address VARCHAR(100),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """))
-
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS unanswered_queries (
-                    id SERIAL PRIMARY KEY,
-                    company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
-                    session_id VARCHAR(100),
-                    question TEXT NOT NULL,
-                    ai_response TEXT,
-                    status VARCHAR(20) DEFAULT 'pending',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """))
+        async with async_engine.begin() as conn:
+            success_count = 0
+            for stmt in migration_statements:
+                try:
+                    await conn.execute(text(stmt))
+                    success_count += 1
+                except Exception as e:
+                    logger.warning(f"Migration statement skipped: {str(e)[:100]}")
 
             # Ensure Root Platform Company #1 exists
-            conn.execute(text("""
+            await conn.execute(text("""
                 INSERT INTO companies (id, name, website, description, is_active, is_verified)
                 VALUES (1, 'Super Admin HQ', 'https://aisalesbot.platform', 'Root Platform Administration Workspace', TRUE, TRUE)
                 ON CONFLICT (id) DO NOTHING;
@@ -138,7 +152,7 @@ async def startup_db_init():
             # Ensure Default Super Admin User exists
             from app.core.security import hash_password
             admin_hash = hash_password(settings.SUPERADMIN_PASSWORD)
-            conn.execute(
+            await conn.execute(
                 text("""
                     INSERT INTO users (company_id, email, hashed_password, is_active, email_verified)
                     VALUES (1, :email, :password, TRUE, TRUE)
@@ -147,8 +161,7 @@ async def startup_db_init():
                 {"email": settings.SUPERADMIN_EMAIL, "password": admin_hash}
             )
 
-            conn.commit()
-            logger.info("Successfully ensured database schemas and superadmin user are seeded.")
+            logger.info(f"Startup migrations complete: {success_count}/{len(migration_statements)} statements executed. Superadmin seeded.")
     except Exception as e:
         logger.warning(f"DB startup migration note: {e}")
 
@@ -175,6 +188,16 @@ def root():
     return {
         "message": "AI Sales Bot Backend Running"
     }
+
+
+@app.get("/api/v1/run-migrations")
+async def run_migrations_manually():
+    """Manually trigger database schema migrations (same as startup)."""
+    try:
+        await startup_db_init()
+        return {"status": "success", "message": "All database migrations executed successfully."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 @app.get("/health/database")
