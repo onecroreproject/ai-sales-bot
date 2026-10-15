@@ -146,22 +146,40 @@ async def startup_db_init():
             await conn.execute(text("""
                 INSERT INTO companies (id, name, website, description, is_active, is_verified)
                 VALUES (1, 'Super Admin HQ', 'https://aisalesbot.platform', 'Root Platform Administration Workspace', TRUE, TRUE)
-                ON CONFLICT (id) DO NOTHING;
+                ON CONFLICT (id) DO UPDATE SET is_active = TRUE, is_verified = TRUE;
             """))
 
-            # Ensure Default Super Admin User exists
             from app.core.security import hash_password
             admin_hash = hash_password(settings.SUPERADMIN_PASSWORD)
+            demo_hash = hash_password("password123")
+
+            # Seed / ensure superadmin exists with email_verified=TRUE
             await conn.execute(
                 text("""
                     INSERT INTO users (company_id, email, hashed_password, is_active, email_verified)
                     VALUES (1, :email, :password, TRUE, TRUE)
-                    ON CONFLICT (email) DO NOTHING;
+                    ON CONFLICT (email) DO UPDATE SET 
+                        hashed_password = :password,
+                        is_active = TRUE,
+                        email_verified = TRUE;
                 """),
                 {"email": settings.SUPERADMIN_EMAIL, "password": admin_hash}
             )
 
-            logger.info(f"Startup migrations complete: {success_count}/{len(migration_statements)} statements executed. Superadmin seeded.")
+            # Seed / ensure admin@test.com exists with password123 and email_verified=TRUE
+            await conn.execute(
+                text("""
+                    INSERT INTO users (company_id, email, hashed_password, is_active, email_verified)
+                    VALUES (1, 'admin@test.com', :password, TRUE, TRUE)
+                    ON CONFLICT (email) DO UPDATE SET 
+                        hashed_password = :password,
+                        is_active = TRUE,
+                        email_verified = TRUE;
+                """),
+                {"password": demo_hash}
+            )
+
+            logger.info(f"Startup migrations complete: {success_count}/{len(migration_statements)} statements executed. Admin accounts verified.")
     except Exception as e:
         logger.warning(f"DB startup migration note: {e}")
 
