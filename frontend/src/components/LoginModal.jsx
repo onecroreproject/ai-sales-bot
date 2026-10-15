@@ -82,7 +82,6 @@ export default function LoginModal({ onLogin, onRegister }) {
     e.preventDefault();
     setError('');
     setSuccess('');
-    setVerificationUrl('');
 
     if (mode !== 'reset') {
       if (!validateEmail(email)) {
@@ -296,7 +295,7 @@ export default function LoginModal({ onLogin, onRegister }) {
             }}>
               <button
                 type="button"
-                onClick={() => { setMode('login'); setError(''); setSuccess(''); setVerificationUrl(''); }}
+                onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
                 style={{
                   flex: 1,
                   padding: '10px',
@@ -315,7 +314,7 @@ export default function LoginModal({ onLogin, onRegister }) {
               </button>
               <button
                 type="button"
-                onClick={() => { setMode('register'); setError(''); setSuccess(''); setVerificationUrl(''); }}
+                onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
                 style={{
                   flex: 1,
                   padding: '10px',
