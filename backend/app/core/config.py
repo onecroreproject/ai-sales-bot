@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # Production VPS SSH Tunnel configuration (only used when running from outside the VPS)
     USE_SSH_TUNNEL: bool = False
-    VPS_HOST: str = "147.93.31.98"
+    VPS_HOST: str = ""
     VPS_PORT: int = 22
     VPS_USER: str = "root"
     VPS_PASSWORD: str = ""

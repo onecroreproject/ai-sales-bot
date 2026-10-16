@@ -33,7 +33,14 @@ app = FastAPI(
 # ---------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://aichat.dlksoftwaresolutions.co.in",
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8105",
+    ],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,7 +71,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Static assets
-app.mount("/api/static", StaticFiles(directory="app/static"), name="static")
+import os
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static_root")
+    app.mount("/api/static", StaticFiles(directory=static_dir), name="static_api")
 
 
 @app.on_event("startup")
