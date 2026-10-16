@@ -211,10 +211,17 @@ def root():
 
 @app.get("/api/v1/run-migrations")
 async def run_migrations_manually():
-    """Manually trigger database schema migrations (same as startup)."""
+    """Manually trigger database schema migrations and report company table columns."""
+    from app.database.connection import async_engine
+    from sqlalchemy import text
     try:
         await startup_db_init()
-        return {"status": "success", "message": "All database migrations executed successfully."}
+        cols = []
+        async with async_engine.connect() as conn:
+            res = await conn.execute(text("SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'companies' ORDER BY ordinal_position;"))
+            cols = [dict(r._mapping) for r in res.fetchall()]
+
+        return {"status": "success", "message": "All database migrations executed successfully.", "companies_columns": cols}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
