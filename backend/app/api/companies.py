@@ -55,9 +55,26 @@ async def get_my_company_api(
     current_user: User = Depends(get_current_user),
 ):
     """Fetch company profile details for current authenticated user."""
-    company = await get_company(db, current_user.company_id)
+    company_id = current_user.company_id
+    if not company_id:
+        company_id = 1
+
+    company = await get_company(db, company_id)
     if company is None:
-        raise HTTPException(status_code=404, detail="Company not found")
+        # Create company #1 on the fly if it does not exist
+        from app.models.company import Company
+        company = Company(
+            id=company_id,
+            name="Workspace Admin",
+            website="https://aichat.dlksoftwaresolutions.co.in",
+            description="Workspace Management",
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(company)
+        await db.commit()
+        await db.refresh(company)
+
     return company
 
 

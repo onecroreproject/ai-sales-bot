@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -42,24 +43,24 @@ class CompanyResponse(BaseModel):
     name: str
     website: str | None = None
     description: str | None = None
-    is_active: bool
+    is_active: bool = True
     is_verified: bool = False
-    llm_provider: str
-    llm_model: str
+    llm_provider: str | None = "openai"
+    llm_model: str | None = "gpt-4o-mini"
     llm_api_key: str | None = None
-    bot_persona: str = "professional"
+    bot_persona: str | None = "professional"
     custom_instructions: str | None = None
     guardrail_blocked_topics: str | None = None
     guardrail_competitors: str | None = None
-    guardrail_pii_masking: bool = True
+    guardrail_pii_masking: bool | None = True
     guardrail_custom_refusal: str | None = None
-    guardrail_tone_strictness: str = "standard"
+    guardrail_tone_strictness: str | None = "standard"
     webhook_url: str | None = None
     telegram_bot_token: str | None = None
     whatsapp_number: str | None = None
-    auto_crawl_enabled: bool = False
-    crawl_frequency_days: int = 7
-    last_crawled_at: str | None = None
+    auto_crawl_enabled: bool | None = False
+    crawl_frequency_days: int | None = 7
+    last_crawled_at: datetime | str | None = None
 
     model_config = {
         "from_attributes": True

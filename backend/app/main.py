@@ -58,6 +58,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "error": "Internal Server Error",
             "detail": f"An unexpected error occurred on the server. Reference ID: {request_id}",
+            "debug_message": str(exc),
         },
     )
 
